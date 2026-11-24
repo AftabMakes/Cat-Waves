@@ -1,0 +1,3096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CatWaves - Neon Synthwave Wave Arcade</title>
+    <!-- Tailwind CSS for responsive layout & clean utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Arcade & playful typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0719;
+            font-family: 'Fredoka', sans-serif;
+            color: #ffffff;
+        }
+        .font-arcade {
+            font-family: 'Orbitron', sans-serif;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: pointer;
+        }
+        .neon-box {
+            background: rgba(18, 12, 38, 0.86);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 110, 199, 0.45);
+            box-shadow: 0 0 25px rgba(255, 110, 199, 0.25), inset 0 0 15px rgba(0, 243, 255, 0.15);
+        }
+        .neon-btn {
+            background: linear-gradient(135deg, #ff4ecd 0%, #7b2cbf 100%);
+            border: 2px solid #ff9eea;
+            box-shadow: 0 4px 15px rgba(255, 78, 205, 0.5);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+        }
+        .neon-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 22px rgba(255, 78, 205, 0.75);
+            filter: brightness(1.1);
+        }
+        .neon-btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+        .cyan-btn {
+            background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+            border: 2px solid #90e0ef;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.45);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+        }
+        .cyan-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 22px rgba(0, 243, 255, 0.75);
+            filter: brightness(1.08);
+        }
+        .level-card {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .level-card:hover {
+            transform: translateY(-4px);
+        }
+        .level-card.selected {
+            border-color: #00f3ff;
+            background: rgba(0, 243, 255, 0.16);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+        }
+        .skin-pill {
+            transition: all 0.18s ease;
+        }
+        .skin-pill.selected {
+            border-color: #ffd166;
+            background: rgba(255, 209, 102, 0.22);
+            box-shadow: 0 0 14px rgba(255, 209, 102, 0.5);
+            transform: scale(1.04);
+        }
+        .device-card {
+            transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .device-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: #00f3ff;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.45);
+        }
+        .device-card:active {
+            transform: scale(0.98);
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+        .touch-pill-active {
+            background: rgba(0, 243, 255, 0.28) !important;
+            border-color: #00f3ff !important;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.6) !important;
+            transform: scale(0.97);
+        }
+        .admin-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);
+            border: 2px solid #fde047;
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.65);
+            transition: transform 0.14s ease, box-shadow 0.14s ease;
+        }
+        .admin-btn:hover {
+            transform: translateY(-1px) scale(1.03);
+            box-shadow: 0 0 26px rgba(253, 224, 71, 0.85);
+        }
+        .admin-panel-box {
+            background: rgba(16, 10, 30, 0.95);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(251, 191, 36, 0.65);
+            box-shadow: 0 0 40px rgba(220, 38, 38, 0.35), inset 0 0 20px rgba(251, 191, 36, 0.15);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 110, 199, 0.5);
+            border-radius: 999px;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+    <!-- Fullscreen Synthwave Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 1. STARTUP DEVICE SELECTION OVERLAY (Mobile vs Laptop/PC) -->
+    <div id="deviceOverlay" class="fixed inset-0 flex items-center justify-center p-4 sm:p-6 z-50 bg-slate-950/85 backdrop-blur-md">
+        <div class="neon-box rounded-3xl w-full max-w-2xl p-6 sm:p-8 text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 text-xs font-arcade font-bold tracking-widest uppercase mb-3">
+                <span>🐾</span> CATWAVES SETUP • STEP 1 OF 2 <span>🐾</span>
+            </div>
+            <h1 class="text-3xl sm:text-5xl font-arcade font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-300 to-cyan-300 mb-2">
+                HOW ARE YOU PLAYING?
+            </h1>
+            <p class="text-xs sm:text-sm text-indigo-200/90 mb-6">
+                Choose your platform to optimize controls, HUD layout, and touch zones.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <!-- Mobile / Touch Card -->
+                <button id="selectMobileBtn" type="button" class="device-card neon-box rounded-2xl p-5 sm:p-6 text-center flex flex-col items-center justify-between cursor-pointer border-2 border-pink-400/40">
+                    <div class="text-5xl sm:text-6xl mb-3">📱</div>
+                    <div>
+                        <div class="text-lg sm:text-xl font-arcade font-black text-pink-300 tracking-wide mb-1">MOBILE / TOUCH</div>
+                        <p class="text-xs text-indigo-200/85 leading-relaxed">
+                            Large touch-friendly buttons, on-screen <span class="text-cyan-300 font-bold">HOLD TO FLY</span> pulse indicator &amp; haptic vibration feedback.
+                        </p>
+                    </div>
+                    <div class="mt-4 w-full py-2.5 rounded-xl bg-pink-500/25 border border-pink-400/50 font-arcade text-xs font-bold text-pink-200 uppercase tracking-wider">
+                        Tap to Select Mobile
+                    </div>
+                </button>
+
+                <!-- Laptop / PC Card -->
+                <button id="selectDesktopBtn" type="button" class="device-card neon-box rounded-2xl p-5 sm:p-6 text-center flex flex-col items-center justify-between cursor-pointer border-2 border-cyan-400/40">
+                    <div class="text-5xl sm:text-6xl mb-3">💻</div>
+                    <div>
+                        <div class="text-lg sm:text-xl font-arcade font-black text-cyan-300 tracking-wide mb-1">LAPTOP / PC</div>
+                        <p class="text-xs text-indigo-200/85 leading-relaxed">
+                            Crisp keyboard &amp; mouse shortcuts (<span class="text-pink-300 font-bold">[SPACE]</span>, <span class="text-pink-300 font-bold">[W]</span>, <span class="text-pink-300 font-bold">[CLICK]</span>, <span class="text-pink-300 font-bold">[R]</span> Quick Restart) &amp; compact HUD.
+                        </p>
+                    </div>
+                    <div class="mt-4 w-full py-2.5 rounded-xl bg-cyan-500/25 border border-cyan-400/50 font-arcade text-xs font-bold text-cyan-200 uppercase tracking-wider">
+                        Click to Select PC
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. ACCOUNT LOGIN / REGISTER GATE OVERLAY -->
+    <div id="authOverlay" class="hidden fixed inset-0 flex items-center justify-center p-4 sm:p-6 z-40 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+        <div class="neon-box rounded-3xl w-full max-w-xl p-5 sm:p-7 text-center my-auto">
+            <div class="flex items-center justify-between mb-3">
+                <button id="authBackDeviceBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-900/80 border border-cyan-400/40 text-xs font-arcade font-bold text-cyan-300 hover:border-pink-400 transition cursor-pointer">
+                    ← Platform
+                </button>
+                <span class="px-3 py-1 rounded-full bg-pink-500/15 border border-pink-400/40 text-pink-300 text-[11px] font-arcade font-bold tracking-wider uppercase">
+                    🐾 PILOT PROFILE &amp; SAVE DATA
+                </span>
+            </div>
+
+            <h2 class="text-2xl sm:text-4xl font-arcade font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-amber-200 to-cyan-300 mb-1">
+                CATWAVES ACCOUNT
+            </h2>
+            <p class="text-xs text-indigo-200/90 mb-4">
+                Sign in or create an account to save your Golden Fish, Cat Skins, Stage % &amp; Endless High Scores!
+            </p>
+
+            <!-- Quick-Select Saved Profiles on Device -->
+            <div id="savedProfilesSection" class="hidden mb-4 text-left">
+                <div class="text-[11px] font-arcade uppercase tracking-wider text-cyan-300 font-bold mb-1.5 px-1">
+                    ⚡ Quick Sign-In (Saved on Device)
+                </div>
+                <div id="savedProfilesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- Sign In / Register Mode Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-900/90 border border-indigo-500/30 mb-4">
+                <button id="tabLoginBtn" type="button" class="py-2 rounded-xl font-arcade text-xs font-bold uppercase transition bg-pink-500/30 border border-pink-400 text-white cursor-pointer">
+                    Sign In
+                </button>
+                <button id="tabRegisterBtn" type="button" class="py-2 rounded-xl font-arcade text-xs font-bold uppercase transition text-indigo-300 hover:text-white cursor-pointer">
+                    Create Account
+                </button>
+            </div>
+
+            <!-- Auth Form -->
+            <form id="authForm" class="space-y-3 text-left">
+                <div>
+                    <label for="authUsernameInput" class="block text-[11px] font-arcade uppercase text-pink-300 font-bold mb-1">Cat Pilot Username</label>
+                    <input id="authUsernameInput" type="text" maxlength="18" autocomplete="off" placeholder="Enter username (e.g. AftabPlays)"
+                        class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border-2 border-indigo-500/40 focus:border-cyan-400 outline-none text-white font-bold text-sm transition" />
+                </div>
+
+                <!-- Dynamic Admin Detection Hint -->
+                <div id="adminDetectBanner" class="hidden px-3.5 py-2 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 text-xs font-bold flex items-center gap-2">
+                    <span class="text-base">👑</span>
+                    <span>Creator Username Detected! Full <strong class="text-yellow-300">Admin Panel Privileges</strong> will unlock upon login.</span>
+                </div>
+
+                <div>
+                    <label for="authPasswordInput" class="block text-[11px] font-arcade uppercase text-cyan-300 font-bold mb-1">4-Digit PIN or Password</label>
+                    <input id="authPasswordInput" type="password" maxlength="24" placeholder="Enter PIN / Password (min 4 chars)"
+                        class="w-full px-4 py-3 rounded-xl bg-slate-950/90 border-2 border-indigo-500/40 focus:border-pink-400 outline-none text-white font-bold text-sm transition" />
+                </div>
+
+                <div id="authErrorMsg" class="hidden text-xs font-bold text-rose-400 bg-rose-500/15 border border-rose-500/40 rounded-xl px-3 py-2 text-center"></div>
+
+                <button type="submit" id="authSubmitBtn" class="neon-btn w-full py-3.5 rounded-2xl font-arcade font-black text-sm sm:text-base tracking-wider text-white uppercase cursor-pointer mt-1">
+                    SIGN IN &amp; LAUNCH 🐾
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. TOP HUD (Visible during Gameplay) -->
+    <div id="hudOverlay" class="hidden fixed top-0 left-0 w-full p-3 sm:p-5 flex items-center justify-between pointer-events-none z-20">
+        <!-- Left: Menu Button, Level Name & Mode Badges -->
+        <div class="flex items-center gap-2 sm:gap-3 pointer-events-auto">
+            <button id="pauseHomeBtn" type="button" title="Back to Menu [ESC]" class="px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl neon-box text-pink-200 hover:text-white hover:border-pink-400 transition flex items-center gap-1.5 text-sm font-bold cursor-pointer">
+                <span>🏠</span>
+                <span class="hidden sm:inline">Menu</span>
+            </button>
+            <div class="neon-box px-3.5 py-1.5 rounded-xl">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span id="hudLevelTitle" class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wide">1. Cozy Yarn Tunnel</span>
+                    <span id="hudPracticeBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-arcade font-bold bg-emerald-500/25 border border-emerald-400 text-emerald-300">PRACTICE</span>
+                    <span id="hudGodBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-arcade font-bold bg-amber-500/30 border border-amber-400 text-yellow-300">GOD</span>
+                    <span id="hudBotBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-arcade font-bold bg-cyan-500/30 border border-cyan-400 text-cyan-200">BOT</span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] text-pink-300/90 font-semibold">
+                    <span id="hudAttemptText">Attempt 1</span>
+                    <span id="hudComboText" class="text-amber-300 hidden">• Sparks: 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Progress Bar (Stages) or Distance & Score (Endless) -->
+        <div class="flex-1 max-w-md mx-2 sm:mx-6">
+            <div id="progressContainer" class="w-full">
+                <div class="flex justify-between text-xs font-arcade font-bold mb-1 px-1">
+                    <span class="text-pink-300">PROGRESS</span>
+                    <span id="hudPercent" class="text-cyan-300">0%</span>
+                </div>
+                <div class="w-full h-3.5 bg-slate-900/90 rounded-full p-0.5 border border-pink-500/50 shadow-inner overflow-hidden">
+                    <div id="hudProgressBar" class="h-full rounded-full bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 transition-all duration-75" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div id="endlessScoreContainer" class="hidden text-center">
+                <div class="flex items-center justify-center gap-4">
+                    <div>
+                        <div class="text-[10px] font-arcade text-pink-300 tracking-widest">DISTANCE</div>
+                        <div id="hudEndlessDist" class="text-lg sm:text-2xl font-arcade font-black text-cyan-300 drop-shadow">0m</div>
+                    </div>
+                    <div class="h-6 w-px bg-pink-500/30"></div>
+                    <div>
+                        <div class="text-[10px] font-arcade text-amber-300 tracking-widest">SCORE</div>
+                        <div id="hudEndlessPoints" class="text-lg sm:text-2xl font-arcade font-black text-amber-300 drop-shadow">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Admin Button (AftabPlays ONLY), Quick Restart, Fish Counter & Mute Toggle -->
+        <div class="flex items-center gap-1.5 sm:gap-2.5 pointer-events-auto">
+            <button id="adminBtnHud" type="button" class="hidden admin-btn px-2.5 py-2 rounded-xl text-white font-arcade font-black text-xs tracking-wider cursor-pointer" title="Open AftabPlays Admin Panel">
+                👑 ADMIN
+            </button>
+            <button id="hudQuickRestartBtn" type="button" title="Quick Restart [R]" class="px-2.5 py-2 rounded-xl neon-box text-cyan-300 hover:text-white hover:border-cyan-400 transition text-sm font-arcade font-bold cursor-pointer">
+                ↻
+            </button>
+            <div class="neon-box px-2.5 sm:px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <span class="text-base sm:text-lg">🐟</span>
+                <span id="hudFishCount" class="font-arcade font-bold text-amber-300 text-sm sm:text-base">0</span>
+            </div>
+            <button id="muteBtnHud" type="button" class="w-10 h-10 rounded-xl neon-box flex items-center justify-center text-lg hover:border-cyan-400 transition cursor-pointer" title="Toggle Sound">
+                🔊
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Touch Helper Pill (Shown during gameplay ONLY when Mobile Mode is active) -->
+    <div id="mobileTouchZone" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 pointer-events-none z-20">
+        <div id="mobileTouchPill" class="px-7 py-3 rounded-full neon-box border-2 border-pink-400/60 flex items-center gap-3 transition-all duration-100">
+            <span class="text-xl">🐾</span>
+            <span id="mobileTouchLabel" class="font-arcade font-black text-sm tracking-widest text-pink-200 uppercase">HOLD ANYWHERE TO FLY</span>
+            <span class="text-xl">🐾</span>
+        </div>
+    </div>
+
+    <!-- PC Shortcut Hint Footer (Shown during gameplay ONLY when PC Mode is active) -->
+    <div id="pcControlBar" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 pointer-events-none z-20">
+        <div class="px-4 py-1.5 rounded-full bg-slate-950/70 border border-cyan-500/30 text-[11px] font-arcade text-cyan-200/80 flex items-center gap-3 whitespace-nowrap">
+            <span><strong class="text-pink-300">[SPACE / W / ↑ / CLICK]</strong> Fly</span>
+            <span>•</span>
+            <span><strong class="text-cyan-300">[R]</strong> Instant Restart</span>
+            <span>•</span>
+            <span><strong class="text-amber-300">[ESC]</strong> Menu</span>
+        </div>
+    </div>
+
+    <!-- 4. MAIN MENU OVERLAY -->
+    <div id="menuOverlay" class="hidden fixed inset-0 flex items-center justify-center p-3 sm:p-5 z-30 bg-slate-950/55 backdrop-blur-[2px] overflow-y-auto">
+        <div class="neon-box rounded-3xl w-full max-w-4xl p-4 sm:p-6 relative my-auto">
+            <!-- Top Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="switchAccountBtn" type="button" class="flex items-center gap-2 bg-slate-900/90 border border-pink-400/50 hover:border-cyan-400 px-3 py-1.5 rounded-full transition cursor-pointer" title="Switch or Manage Account">
+                        <span id="menuUserIcon" class="text-sm">🐱</span>
+                        <span id="menuUsernameLabel" class="font-arcade font-bold text-xs text-white">Pilot</span>
+                        <span id="menuAdminTag" class="hidden px-1.5 py-0.5 rounded bg-amber-500/30 border border-amber-400 text-[9px] font-arcade font-black text-yellow-300">ADMIN</span>
+                        <span class="text-[10px] text-cyan-300 underline ml-0.5">Switch</span>
+                    </button>
+
+                    <div class="flex items-center gap-1.5 bg-slate-900/85 border border-amber-400/40 px-3 py-1.5 rounded-full">
+                        <span class="text-base">🐟</span>
+                        <span id="menuTotalFish" class="font-arcade font-bold text-amber-300 text-xs sm:text-sm">0</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- EXCLUSIVE ADMIN PANEL BUTTON (STRICTLY ONLY FOR AftabPlays) -->
+                    <button id="adminBtnMenu" type="button" class="hidden admin-btn px-3.5 py-1.5 rounded-full text-xs font-arcade font-black text-white tracking-wider flex items-center gap-1.5 cursor-pointer">
+                        <span>👑</span>
+                        <span>ADMIN PANEL</span>
+                    </button>
+
+                    <!-- Platform Mode Switcher Pill -->
+                    <button id="switchDeviceBtn" type="button" class="px-3 py-1.5 rounded-full bg-slate-900/85 border border-cyan-400/40 text-xs font-arcade font-bold text-cyan-300 hover:border-pink-400 transition flex items-center gap-1.5 cursor-pointer" title="Switch Mobile / PC UI">
+                        <span id="deviceBadgeIcon">💻</span>
+                        <span id="deviceBadgeText">PC UI</span>
+                    </button>
+
+                    <!-- Synth Audio Mute Toggle -->
+                    <button id="muteBtnMenu" type="button" class="px-3 py-1.5 rounded-full bg-slate-900/85 border border-pink-400/40 text-xs font-bold flex items-center gap-1.5 hover:border-cyan-400 transition cursor-pointer">
+                        <span id="muteIconMenu">🔊</span>
+                        <span id="muteLabelMenu" class="text-pink-200">Synth ON</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Title & Control Prompt -->
+            <div class="text-center mb-4">
+                <h1 class="text-4xl sm:text-5xl font-arcade font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-300 to-cyan-300 drop-shadow-[0_0_20px_rgba(255,110,199,0.6)] animate-float">
+                    CATWAVES
+                </h1>
+                <p id="menuControlSubtitle" class="text-xs sm:text-sm text-indigo-200/90 mt-1">
+                    Hold <span class="text-cyan-300 font-bold">[SPACE / W / ↑ / CLICK]</span> to soar 45° up • Release to dive 45° down!
+                </p>
+            </div>
+
+            <!-- 4 Stages + Endless Zoomies -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <span class="text-xs font-arcade uppercase tracking-wider text-pink-300 font-bold">Select Stage or Endless Mode</span>
+                    <span id="bestStatLabel" class="text-xs text-cyan-300 font-semibold">Stage Best: 0%</span>
+                </div>
+                <div id="levelGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5"></div>
+            </div>
+
+            <!-- 6 Cat Skins & Neon Trails -->
+            <div class="mb-5 bg-slate-950/65 border border-indigo-500/30 rounded-2xl p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-arcade uppercase tracking-wider text-amber-300 font-bold">🐱 Cat Pilot &amp; Neon Trail</span>
+                    <span id="skinStatusText" class="text-xs text-indigo-200">Active: Nyan-Tabby</span>
+                </div>
+                <div id="skinGrid" class="grid grid-cols-3 sm:grid-cols-6 gap-2"></div>
+            </div>
+
+            <!-- Launch Buttons -->
+            <div class="flex flex-col items-center">
+                <div id="menuToast" class="h-5 text-xs font-bold text-amber-300 mb-1.5 transition-opacity opacity-0"></div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xl">
+                    <button id="playBtn" type="button" class="neon-btn w-full sm:flex-[1.6] py-3.5 px-6 rounded-2xl font-arcade font-black text-base sm:text-lg tracking-wider text-white uppercase flex items-center justify-center gap-2.5 cursor-pointer">
+                        <span>▶</span>
+                        <span id="playBtnLabel">PLAY NORMAL</span>
+                    </button>
+                    <button id="practiceBtn" type="button" class="cyan-btn w-full sm:flex-1 py-3.5 px-5 rounded-2xl font-arcade font-bold text-sm sm:text-base tracking-wider text-white uppercase flex items-center justify-center gap-2 cursor-pointer" title="Auto-drops paw checkpoints so you can practice tough spike corridors!">
+                        <span>🐾</span>
+                        <span>PRACTICE</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. CRASH / VICTORY MODAL OVERLAY -->
+    <div id="endOverlay" class="hidden fixed inset-0 flex items-center justify-center p-4 z-30 bg-slate-950/50 backdrop-blur-[2px]">
+        <div class="neon-box rounded-3xl w-full max-w-md p-6 text-center">
+            <div id="endEmoji" class="text-5xl mb-2">😿💥</div>
+            <h2 id="endTitle" class="text-2xl sm:text-3xl font-arcade font-black text-pink-400 tracking-wide mb-1">BONKED!</h2>
+            <p id="endSubtitle" class="text-sm text-indigo-200 mb-4">Watch out for razor crystal spikes, lasers &amp; cucumbers!</p>
+
+            <div class="grid grid-cols-3 gap-2 bg-slate-900/80 border border-pink-500/30 rounded-2xl p-3 mb-5">
+                <div>
+                    <div id="stat1Label" class="text-[10px] font-arcade text-indigo-300 uppercase">Progress</div>
+                    <div id="stat1Value" class="text-lg font-arcade font-bold text-cyan-300">0%</div>
+                </div>
+                <div>
+                    <div id="stat2Label" class="text-[10px] font-arcade text-indigo-300 uppercase">Best</div>
+                    <div id="stat2Value" class="text-lg font-arcade font-bold text-pink-300">0%</div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-arcade text-indigo-300 uppercase">Treats</div>
+                    <div id="stat3Value" class="text-lg font-arcade font-bold text-amber-300">+0 🐟</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="menuReturnBtn" type="button" class="cyan-btn flex-1 py-3.5 px-4 rounded-xl font-arcade font-bold text-sm text-white uppercase cursor-pointer">
+                    Menu / Skins
+                </button>
+                <button id="retryBtn" type="button" class="neon-btn flex-[1.5] py-3.5 px-5 rounded-xl font-arcade font-black text-base text-white uppercase flex items-center justify-center gap-2 cursor-pointer">
+                    <span>↻</span>
+                    <span>PLAY AGAIN</span>
+                </button>
+            </div>
+            <div id="endRestartHint" class="mt-3 text-xs text-cyan-200/80 font-semibold">
+                Press <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-cyan-400/40 text-cyan-300">[SPACE / R]</span> or <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-cyan-400/40 text-cyan-300">[CLICK]</span> for instant retry!
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. EXCLUSIVE ADMIN PANEL MODAL (STRICTLY FOR AftabPlays ONLY) -->
+    <div id="adminModalOverlay" class="hidden fixed inset-0 flex items-center justify-center p-3 sm:p-5 z-50 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+        <div class="admin-panel-box rounded-3xl w-full max-w-3xl p-5 sm:p-6 my-auto text-left">
+            <div class="flex items-center justify-between gap-3 pb-3 mb-4 border-b border-amber-400/30">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl sm:text-3xl">👑</span>
+                    <div>
+                        <h2 class="text-lg sm:text-2xl font-arcade font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-rose-400">
+                            AFTABPLAYS ADMIN CONSOLE
+                        </h2>
+                        <p class="text-[11px] text-amber-200/80 font-semibold">
+                            Verified Creator Access • Live Gameplay Modifiers &amp; Account Database Inspector
+                        </p>
+                    </div>
+                </div>
+                <button id="closeAdminModalBtn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-amber-400/50 text-amber-200 hover:text-white hover:border-rose-400 font-arcade text-xs font-bold cursor-pointer">
+                    ✕ CLOSE
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <!-- Player Cheats & Live Modifiers -->
+                <div class="bg-slate-950/75 border border-amber-500/30 rounded-2xl p-4 space-y-3">
+                    <div class="text-xs font-arcade font-bold uppercase tracking-wider text-yellow-300 flex items-center gap-1.5">
+                        <span>⚡</span> Player Cheats &amp; Live Modifiers
+                    </div>
+
+                    <div class="flex items-center justify-between bg-slate-900/90 px-3 py-2.5 rounded-xl border border-white/10">
+                        <div>
+                            <div class="text-xs font-bold text-white">🛡️ God Mode (Invincibility)</div>
+                            <div class="text-[10px] text-indigo-300">Immune to spikes, lasers, saws &amp; walls</div>
+                        </div>
+                        <button id="adminToggleGodBtn" type="button" class="px-3 py-1.5 rounded-lg font-arcade text-xs font-bold bg-slate-800 border border-slate-600 text-slate-300 cursor-pointer">
+                            OFF
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-slate-900/90 px-3 py-2.5 rounded-xl border border-white/10">
+                        <div>
+                            <div class="text-xs font-bold text-white">🤖 Auto-Pilot Wave Bot</div>
+                            <div class="text-[10px] text-indigo-300">AI steers around spikes &amp; walls automatically</div>
+                        </div>
+                        <button id="adminToggleBotBtn" type="button" class="px-3 py-1.5 rounded-lg font-arcade text-xs font-bold bg-slate-800 border border-slate-600 text-slate-300 cursor-pointer">
+                            OFF
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900/90 px-3 py-2.5 rounded-xl border border-white/10">
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span class="text-white">🚀 Custom Speed Multiplier</span>
+                            <span id="adminSpeedValLabel" class="font-arcade text-cyan-300">1.0x</span>
+                        </div>
+                        <input id="adminSpeedSlider" type="range" min="0.5" max="2.5" step="0.1" value="1.0"
+                            class="w-full accent-amber-400 cursor-pointer" />
+                    </div>
+
+                    <button id="adminInstantWinBtn" type="button" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 border border-emerald-300 font-arcade text-xs font-black text-white uppercase tracking-wider hover:brightness-110 transition cursor-pointer">
+                        🏆 Instant Win Current Stage (100%)
+                    </button>
+                </div>
+
+                <!-- Currency & Unlocks -->
+                <div class="bg-slate-950/75 border border-pink-500/30 rounded-2xl p-4 space-y-3">
+                    <div class="text-xs font-arcade font-bold uppercase tracking-wider text-pink-300 flex items-center gap-1.5">
+                        <span>🐟</span> Currency &amp; Account Unlocks
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="adminAdd1kFishBtn" type="button" class="py-2 px-3 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-200 hover:bg-amber-500/30 font-arcade text-xs font-bold cursor-pointer">
+                            +1,000 🐟
+                        </button>
+                        <button id="adminAdd10kFishBtn" type="button" class="py-2 px-3 rounded-xl bg-amber-500/20 border border-amber-400/60 text-amber-200 hover:bg-amber-500/30 font-arcade text-xs font-bold cursor-pointer">
+                            +10,000 🐟
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input id="adminExactFishInput" type="number" min="0" max="99999999" placeholder="Exact Golden Fish..."
+                            class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-indigo-500/40 text-xs font-bold text-white outline-none focus:border-amber-400" />
+                        <button id="adminSetFishBtn" type="button" class="px-3.5 py-2 rounded-xl cyan-btn font-arcade text-xs font-bold text-white cursor-pointer">
+                            SET
+                        </button>
+                    </div>
+
+                    <button id="adminUnlockAllSkinsBtn" type="button" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 border border-pink-300 font-arcade text-xs font-bold text-white uppercase cursor-pointer hover:brightness-110">
+                        🐱 Unlock All 6 Cat Pilot Skins
+                    </button>
+
+                    <button id="adminCompleteAllLevelsBtn" type="button" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-300 font-arcade text-xs font-bold text-white uppercase cursor-pointer hover:brightness-110">
+                        👑 Complete All 4 Stages (100%)
+                    </button>
+
+                    <button id="adminResetOwnProgressBtn" type="button" class="w-full py-2 px-4 rounded-xl bg-rose-950/80 border border-rose-500/60 font-arcade text-[11px] font-bold text-rose-300 hover:bg-rose-900/80 uppercase cursor-pointer">
+                        ⚠️ Reset AftabPlays Progress
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Database Inspector -->
+            <div class="bg-slate-950/75 border border-cyan-500/30 rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-2.5">
+                    <div class="text-xs font-arcade font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                        <span>🗄️</span> Account Database Inspector (<span id="adminTotalAccountsCount">1</span> Registered)
+                    </div>
+                    <span id="adminStatusFeedback" class="text-xs font-bold text-emerald-300"></span>
+                </div>
+                <div id="adminAccountsList" class="space-y-2 max-h-44 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * ============================================================================
+     * CATWAVES - COMPLETE SINGLE-FILE SYNTHWAVE WAVE ARCADE
+     * ============================================================================
+     */
+    (() => {
+        'use strict';
+
+        // =========================================================================
+        // 1. PERSISTENT ACCOUNT STORAGE, SKINS & STAGES
+        // =========================================================================
+        const ACCOUNTS_STORAGE_KEY = 'catwaves_accounts_v1';
+        const SESSION_STORAGE_KEY = 'catwaves_session_v1';
+
+        const SKINS = [
+            {
+                id: 'nyan',
+                name: 'Nyan-Tabby',
+                cost: 0,
+                bodyColor: '#ff9e7d',
+                earInner: '#ff6ec7',
+                visorColor: '#00f3ff',
+                trailColors: ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#00c7be', '#af52de'],
+                emoji: '🐱'
+            },
+            {
+                id: 'calico',
+                name: 'Calico Pop',
+                cost: 10,
+                bodyColor: '#fff8f0',
+                spotColor: '#ff8c42',
+                spotColor2: '#2b2d42',
+                earInner: '#ff8fab',
+                visorColor: '#ff4ecd',
+                trailColors: ['#ff8c42', '#ffd166', '#ffffff'],
+                emoji: '🧡'
+            },
+            {
+                id: 'tuxedo',
+                name: 'Tuxedo Dapper',
+                cost: 25,
+                bodyColor: '#1e1e2e',
+                bibColor: '#ffffff',
+                earInner: '#ff758f',
+                visorColor: '#38bdf8',
+                trailColors: ['#38bdf8', '#ffffff', '#94a3b8'],
+                emoji: '🎩'
+            },
+            {
+                id: 'cyber',
+                name: 'Cyber-Cat',
+                cost: 45,
+                bodyColor: '#0f172a',
+                neonTrim: '#00f3ff',
+                earInner: '#ff007f',
+                visorColor: '#00ff9d',
+                trailColors: ['#00f3ff', '#ff007f', '#7b2cbf'],
+                emoji: '🤖'
+            },
+            {
+                id: 'sakura',
+                name: 'Sakura Mochi',
+                cost: 65,
+                bodyColor: '#ffe5ec',
+                neonTrim: '#ff70a6',
+                earInner: '#ff0a54',
+                visorColor: '#ff477e',
+                trailColors: ['#ff0a54', '#ff70a6', '#fbb1bd', '#ffffff'],
+                emoji: '🌸'
+            },
+            {
+                id: 'void',
+                name: 'Void Kitty',
+                cost: 90,
+                bodyColor: '#090414',
+                neonTrim: '#c77dff',
+                earInner: '#e0aaff',
+                visorColor: '#ffbe0b',
+                trailColors: ['#7209b7', '#b5179e', '#f72585', '#4cc9f0'],
+                emoji: '🐈‍⬛'
+            }
+        ];
+
+        const LEVELS = [
+            {
+                id: 0,
+                name: '1. Cozy Yarn Tunnel',
+                difficulty: 'CHILL',
+                diffColor: 'text-emerald-300 border-emerald-400/50 bg-emerald-500/20',
+                bpm: 118,
+                baseSpeed: 390,
+                themeTop: '#160d30',
+                themeBottom: '#2d124d',
+                accent: '#ff70a6',
+                wallFill: '#241445',
+                wallStroke: '#ff70a6',
+                endless: false
+            },
+            {
+                id: 1,
+                name: '2. Laser Pointer Chase',
+                difficulty: 'HYPER',
+                diffColor: 'text-amber-300 border-amber-400/50 bg-amber-500/20',
+                bpm: 132,
+                baseSpeed: 455,
+                themeTop: '#0d1b38',
+                themeBottom: '#2b0f45',
+                accent: '#00f3ff',
+                wallFill: '#122247',
+                wallStroke: '#00f3ff',
+                endless: false
+            },
+            {
+                id: 2,
+                name: '3. Midnight Zoomies',
+                difficulty: 'INSANE',
+                diffColor: 'text-rose-300 border-rose-400/50 bg-rose-500/20',
+                bpm: 144,
+                baseSpeed: 515,
+                themeTop: '#1f0726',
+                themeBottom: '#3d092b',
+                accent: '#ff2a85',
+                wallFill: '#2e0a36',
+                wallStroke: '#ff2a85',
+                endless: false
+            },
+            {
+                id: 3,
+                name: '4. Catnip Overdrive',
+                difficulty: 'DEMON',
+                diffColor: 'text-purple-300 border-purple-400/60 bg-purple-600/30',
+                bpm: 156,
+                baseSpeed: 560,
+                themeTop: '#14031c',
+                themeBottom: '#330624',
+                accent: '#c77dff',
+                wallFill: '#21062e',
+                wallStroke: '#c77dff',
+                endless: false
+            },
+            {
+                id: 4,
+                name: 'Endless Zoomies',
+                difficulty: 'ENDLESS',
+                diffColor: 'text-cyan-300 border-cyan-400/50 bg-cyan-500/20',
+                bpm: 136,
+                baseSpeed: 435,
+                themeTop: '#120a2e',
+                themeBottom: '#1b2845',
+                accent: '#ffd166',
+                wallFill: '#1b1140',
+                wallStroke: '#ffd166',
+                endless: true
+            }
+        ];
+
+        let sessionState = {
+            deviceMode: null, // 'mobile' | 'desktop'
+            activeUsername: null
+        };
+
+        let accountsDB = {};
+        let currentUser = null;
+
+        // Strictly usable only when logged in as AftabPlays
+        let adminCheats = {
+            godMode: false,
+            autoBot: false,
+            speedMult: 1.0
+        };
+
+        function createDefaultAccountData(username, password) {
+            return {
+                username,
+                password,
+                createdAt: Date.now(),
+                fish: 0,
+                unlockedSkins: ['nyan'],
+                selectedSkin: 'nyan',
+                levelBest: [0, 0, 0, 0],
+                endlessBestDist: 0,
+                endlessBestScore: 0,
+                muted: false
+            };
+        }
+
+        function normalizeAccountRecord(acc) {
+            const def = createDefaultAccountData(acc.username || 'CatPilot', acc.password || '0000');
+            const merged = { ...def, ...acc };
+            if (!Array.isArray(merged.levelBest) || merged.levelBest.length < 4) {
+                merged.levelBest = [0, 0, 0, 0];
+            }
+            if (!Array.isArray(merged.unlockedSkins) || merged.unlockedSkins.length === 0) {
+                merged.unlockedSkins = ['nyan'];
+            }
+            return merged;
+        }
+
+        function isAdminUser() {
+            return Boolean(
+                currentUser &&
+                typeof currentUser.username === 'string' &&
+                currentUser.username.trim().toLowerCase() === 'aftabplays'
+            );
+        }
+
+        function loadStorage() {
+            try {
+                const rawAcc = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
+                if (rawAcc) {
+                    const parsed = JSON.parse(rawAcc);
+                    if (parsed && typeof parsed === 'object') {
+                        accountsDB = parsed;
+                    }
+                }
+                const rawSess = localStorage.getItem(SESSION_STORAGE_KEY);
+                if (rawSess) {
+                    const parsedSess = JSON.parse(rawSess);
+                    sessionState = { ...sessionState, ...parsedSess };
+                }
+                if (sessionState.activeUsername) {
+                    const key = sessionState.activeUsername.toLowerCase();
+                    if (accountsDB[key]) {
+                        currentUser = normalizeAccountRecord(accountsDB[key]);
+                    } else {
+                        sessionState.activeUsername = null;
+                    }
+                }
+            } catch (e) {
+                console.warn('LocalStorage unavailable; using session memory.');
+            }
+        }
+
+        function persistSave() {
+            try {
+                if (currentUser && currentUser.username) {
+                    const key = currentUser.username.trim().toLowerCase();
+                    accountsDB[key] = currentUser;
+                    sessionState.activeUsername = currentUser.username;
+                }
+                localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accountsDB));
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionState));
+            } catch (e) {}
+        }
+
+        loadStorage();
+
+        function triggerHaptic(pattern) {
+            if (sessionState.deviceMode === 'mobile' && navigator.vibrate) {
+                try {
+                    navigator.vibrate(pattern);
+                } catch (e) {}
+            }
+        }
+
+        // =========================================================================
+        // 2. WEB AUDIO API PROCEDURAL SYNTHWAVE & CAT SFX ENGINE
+        // =========================================================================
+        class SynthCatAudio {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.isPlaying = false;
+                this.bpm = 124;
+                this.step = 0;
+                this.nextNoteTime = 0;
+                this.timerID = null;
+                this.beatPulse = 0;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch (e) {}
+            }
+
+            setMuted(mute) {
+                this.muted = mute;
+                if (this.muted) {
+                    this.stopMusic();
+                } else if (gameState === 'PLAYING') {
+                    this.startMusic(LEVELS[selectedLevelIdx].bpm);
+                }
+            }
+
+            startMusic(bpm = 124) {
+                this.bpm = bpm;
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx || this.isPlaying) return;
+                this.isPlaying = true;
+                this.step = 0;
+                this.nextNoteTime = this.ctx.currentTime + 0.05;
+                this.scheduler();
+            }
+
+            stopMusic() {
+                this.isPlaying = false;
+                if (this.timerID) {
+                    clearTimeout(this.timerID);
+                    this.timerID = null;
+                }
+            }
+
+            scheduler() {
+                if (!this.isPlaying || this.muted || !this.ctx) return;
+                const secondsPerBeat = 60.0 / this.bpm;
+                const sixteenth = secondsPerBeat / 4;
+
+                while (this.nextNoteTime < this.ctx.currentTime + 0.12) {
+                    this.scheduleStep(this.step, this.nextNoteTime, sixteenth);
+                    this.nextNoteTime += sixteenth;
+                    this.step = (this.step + 1) % 32;
+                }
+                this.timerID = setTimeout(() => this.scheduler(), 25);
+            }
+
+            scheduleStep(step, time, dur) {
+                if (this.muted || !this.ctx) return;
+
+                if (step % 4 === 0) {
+                    this.playKick(time);
+                    const delayMs = Math.max(0, (time - this.ctx.currentTime) * 1000);
+                    setTimeout(() => {
+                        this.beatPulse = 1.0;
+                    }, delayMs);
+                }
+
+                if (step % 4 === 2) {
+                    this.playHat(time, 0.045);
+                }
+
+                const bar = Math.floor(step / 8);
+                const rootFreqs = [55.0, 43.65, 49.0, 41.20];
+                const root = rootFreqs[bar % 4];
+                const bassFreq = (step % 2 === 1) ? root * 2 : root;
+                this.playBass(time, bassFreq, dur * 0.85);
+
+                const arpNotes = [
+                    440, 523.25, 659.25, 880, 659.25, 523.25, 587.33, 659.25,
+                    349.23, 440, 523.25, 698.46, 523.25, 440, 493.88, 587.33,
+                    392.00, 493.88, 587.33, 783.99, 587.33, 493.88, 523.25, 659.25,
+                    329.63, 415.30, 493.88, 659.25, 783.99, 659.25, 587.33, 493.88
+                ];
+                if (step % 2 === 0 || step % 7 === 0) {
+                    this.playLead(time, arpNotes[step % arpNotes.length], dur * 1.4);
+                }
+            }
+
+            playKick(time) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(145, time);
+                osc.frequency.exponentialRampToValueAtTime(38, time + 0.14);
+                gain.gain.setValueAtTime(0.26, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + 0.17);
+            }
+
+            playHat(time, vol = 0.04) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(6200, time);
+                gain.gain.setValueAtTime(vol, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + 0.045);
+            }
+
+            playBass(time, freq, dur) {
+                const osc = this.ctx.createOscillator();
+                const filter = this.ctx.createBiquadFilter();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, time);
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(420, time);
+                filter.frequency.exponentialRampToValueAtTime(160, time + dur);
+                gain.gain.setValueAtTime(0.13, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + dur + 0.01);
+            }
+
+            playLead(time, freq, dur) {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, time);
+                gain.gain.setValueAtTime(0.075, time);
+                gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + dur + 0.01);
+            }
+
+            playMeow() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(480, now);
+                osc.frequency.exponentialRampToValueAtTime(790, now + 0.12);
+                osc.frequency.exponentialRampToValueAtTime(340, now + 0.42);
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.linearRampToValueAtTime(0.28, now + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.46);
+            }
+
+            playFishChime() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const notes = [880, 1174.66, 1318.51];
+                notes.forEach((f, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    const t = now + idx * 0.045;
+                    osc.frequency.setValueAtTime(f, t);
+                    gain.gain.setValueAtTime(0.14, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.19);
+                });
+            }
+
+            playPurrSpark() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(660, now);
+                osc.frequency.exponentialRampToValueAtTime(1320, now + 0.11);
+                gain.gain.setValueAtTime(0.11, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.14);
+            }
+
+            playPortalWhoosh(isGravity = false) {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                if (isGravity) {
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.exponentialRampToValueAtTime(840, now + 0.22);
+                } else {
+                    osc.frequency.setValueAtTime(350, now);
+                    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.18);
+                }
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playVictory() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const chord = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                chord.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    const t = now + i * 0.08;
+                    osc.frequency.setValueAtTime(freq, t);
+                    gain.gain.setValueAtTime(0.16, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.46);
+                });
+            }
+        }
+
+        const audio = new SynthCatAudio();
+        if (currentUser && currentUser.muted) {
+            audio.muted = true;
+        }
+
+        // =========================================================================
+        // 3. RESPONSIVE CANVAS SETUP
+        // =========================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const VIRTUAL_HEIGHT = 720;
+        let viewWidth = 1280;
+        let viewHeight = VIRTUAL_HEIGHT;
+        let renderScale = 1;
+
+        function resizeCanvas() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.max(1, window.innerWidth * dpr);
+            canvas.height = Math.max(1, window.innerHeight * dpr);
+            renderScale = canvas.height / VIRTUAL_HEIGHT;
+            viewHeight = VIRTUAL_HEIGHT;
+            viewWidth = canvas.width / renderScale;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // =========================================================================
+        // 4. WAVE CORRIDOR, SPIKE POLYGONS & STAGE/ENDLESS ARCHITECT
+        // =========================================================================
+        let world = {
+            topWall: [],
+            botWall: [],
+            obstacles: [],
+            portals: [],
+            fishes: [],
+            levelLength: 10000,
+            generatedUntilX: 0,
+            endlessDifficulty: 0
+        };
+
+        function addRazorSpike(x, y, baseW, height, angle = 0) {
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const local = [
+                { lx: 0, ly: -height },
+                { lx: -baseW * 0.5, ly: 0 },
+                { lx: baseW * 0.5, ly: 0 }
+            ];
+            const pts = local.map(p => ({
+                x: x + p.lx * cos - p.ly * sin,
+                y: y + p.lx * sin + p.ly * cos
+            }));
+            world.obstacles.push({
+                type: 'spike_triangle',
+                x,
+                y,
+                baseW,
+                height,
+                angle,
+                pts,
+                sparked: false
+            });
+        }
+
+        function addSpikeRow(x1, y1, x2, y2, count, height, flipNormal = false) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const segLen = Math.hypot(dx, dy);
+            const stepW = segLen / count;
+            let normalAngle = Math.atan2(dy, dx) - Math.PI / 2;
+            if (flipNormal) normalAngle += Math.PI;
+
+            for (let i = 0; i < count; i++) {
+                const t = (i + 0.5) / count;
+                const sx = x1 + dx * t;
+                const sy = y1 + dy * t;
+                addRazorSpike(sx, sy, stepW * 0.96, height, normalAngle);
+            }
+        }
+
+        function addDiamondSpike(x, y, rx, ry) {
+            const pts = [
+                { x, y: y - ry },
+                { x: x + rx, y },
+                { x, y: y + ry },
+                { x: x - rx, y }
+            ];
+            world.obstacles.push({
+                type: 'diamond_spike',
+                x,
+                y,
+                rx,
+                ry,
+                pts,
+                sparked: false
+            });
+        }
+
+        function addSegment(dx, topY, botY) {
+            const x = world.generatedUntilX + dx;
+            world.topWall.push({ x, y: topY });
+            world.botWall.push({ x, y: botY });
+            world.generatedUntilX = x;
+            return x;
+        }
+
+        function buildLevel(levelIdx) {
+            const lvl = LEVELS[levelIdx];
+            world = {
+                topWall: [],
+                botWall: [],
+                obstacles: [],
+                portals: [],
+                fishes: [],
+                levelLength: 10000,
+                generatedUntilX: 0,
+                endlessDifficulty: 0
+            };
+
+            world.topWall.push({ x: -400, y: 85 }, { x: 950, y: 85 });
+            world.botWall.push({ x: -400, y: 635 }, { x: 950, y: 635 });
+            world.generatedUntilX = 950;
+
+            if (lvl.endless) {
+                for (let i = 0; i < 8; i++) {
+                    appendEndlessChunk();
+                }
+                world.levelLength = Infinity;
+            } else if (levelIdx === 0) {
+                generateLevel1CozyYarn();
+            } else if (levelIdx === 1) {
+                generateLevel2LaserChase();
+            } else if (levelIdx === 2) {
+                generateLevel3MidnightZoomies();
+            } else if (levelIdx === 3) {
+                generateLevel4CatnipOverdrive();
+            }
+        }
+
+        function generateLevel1CozyYarn() {
+            const x = world.generatedUntilX;
+
+            addSegment(460, 50, 510);
+            world.fishes.push({ x: x + 280, y: 240, collected: false });
+            world.fishes.push({ x: x + 380, y: 190, collected: false });
+
+            addSegment(560, 210, 670);
+            addSpikeRow(x + 620, 670, x + 860, 670, 5, 42, false);
+            world.fishes.push({ x: x + 740, y: 470, collected: false });
+
+            addSegment(620, 80, 640);
+            addDiamondSpike(x + 1280, 360, 36, 68);
+            world.fishes.push({ x: x + 1280, y: 185, collected: false });
+            world.fishes.push({ x: x + 1280, y: 535, collected: false });
+
+            addSegment(640, 80, 640);
+            addSpikeRow(x + 1650, 80, x + 1890, 80, 5, 44, true);
+            world.obstacles.push({ type: 'cucumber', x: x + 1770, y: 510, w: 34, h: 160, sparked: false });
+            world.fishes.push({ x: x + 1770, y: 310, collected: false });
+
+            addSegment(680, 95, 625);
+            world.obstacles.push({ type: 'saw', x: x + 2350, y: 240, r: 38, speed: 4, sparked: false });
+            world.obstacles.push({ type: 'saw', x: x + 2680, y: 480, r: 38, speed: -4, sparked: false });
+            world.fishes.push({ x: x + 2515, y: 360, collected: false });
+
+            addSegment(480, 95, 625);
+            world.portals.push({ type: 'speed_fast', x: x + 3060, y: 360, h: 240, triggered: false });
+
+            addSegment(540, 50, 420);
+            addSpikeRow(x + 3320, 420, x + 3560, 420, 5, 38, false);
+            world.fishes.push({ x: x + 3440, y: 210, collected: false });
+
+            addSegment(560, 290, 670);
+            addSpikeRow(x + 3880, 290, x + 4120, 290, 5, 38, true);
+            world.fishes.push({ x: x + 4000, y: 510, collected: false });
+
+            addSegment(480, 90, 630);
+            world.portals.push({ type: 'speed_normal', x: x + 4520, y: 360, h: 240, triggered: false });
+
+            addSegment(750, 85, 635);
+            addDiamondSpike(x + 4950, 250, 34, 62);
+            addDiamondSpike(x + 5280, 470, 34, 62);
+            world.fishes.push({ x: x + 5115, y: 360, collected: false });
+
+            addSegment(550, 90, 630);
+            world.levelLength = world.generatedUntilX - 200;
+        }
+
+        function generateLevel2LaserChase() {
+            const x = world.generatedUntilX;
+
+            addSegment(540, 80, 640);
+            world.obstacles.push({ type: 'laser', x: x + 320, y1: 80, y2: 330, sparked: false });
+            addSpikeRow(x + 240, 640, x + 400, 640, 4, 38, false);
+            world.fishes.push({ x: x + 320, y: 480, collected: false });
+
+            addSegment(540, 80, 640);
+            world.obstacles.push({ type: 'laser', x: x + 840, y1: 390, y2: 640, sparked: false });
+            addSpikeRow(x + 760, 80, x + 920, 80, 4, 38, true);
+            world.fishes.push({ x: x + 840, y: 220, collected: false });
+
+            addSegment(500, 45, 365);
+            addSpikeRow(x + 1140, 75, x + 1480, 45, 7, 32, true);
+            world.fishes.push({ x: x + 1460, y: 205, collected: false });
+
+            addSegment(540, 345, 675);
+            addSpikeRow(x + 1650, 390, x + 2020, 675, 7, 32, false);
+            world.fishes.push({ x: x + 1980, y: 520, collected: false });
+
+            addSegment(480, 90, 630);
+            world.portals.push({ type: 'gravity_flip', x: x + 2420, y: 360, h: 250, triggered: false });
+
+            addSegment(760, 85, 635);
+            addDiamondSpike(x + 2820, 230, 38, 72);
+            addDiamondSpike(x + 3180, 490, 38, 72);
+            world.fishes.push({ x: x + 3000, y: 360, collected: false });
+
+            addSegment(720, 80, 640);
+            world.obstacles.push({ type: 'cucumber', x: x + 3580, y: 175, w: 34, h: 170, sparked: false });
+            world.obstacles.push({ type: 'cucumber', x: x + 3940, y: 545, w: 34, h: 170, sparked: false });
+            world.fishes.push({ x: x + 3760, y: 360, collected: false });
+
+            addSegment(460, 90, 630);
+            world.portals.push({ type: 'gravity_normal', x: x + 4340, y: 360, h: 250, triggered: false });
+            world.portals.push({ type: 'speed_fast', x: x + 4500, y: 360, h: 250, triggered: false });
+
+            addSegment(780, 80, 640);
+            world.obstacles.push({ type: 'saw', x: x + 4950, y: 220, r: 38, speed: 6, sparked: false });
+            world.obstacles.push({ type: 'saw', x: x + 4950, y: 500, r: 38, speed: -6, sparked: false });
+            world.fishes.push({ x: x + 4950, y: 360, collected: false });
+
+            addSpikeRow(x + 5200, 640, x + 5440, 640, 5, 42, false);
+            addSpikeRow(x + 5200, 80, x + 5440, 80, 5, 42, true);
+            world.fishes.push({ x: x + 5320, y: 360, collected: false });
+
+            addSegment(550, 90, 630);
+            world.levelLength = world.generatedUntilX - 200;
+        }
+
+        function generateLevel3MidnightZoomies() {
+            const x = world.generatedUntilX;
+
+            world.portals.push({ type: 'speed_fast', x: x + 150, y: 360, h: 260, triggered: false });
+
+            addSegment(440, 45, 335);
+            addSpikeRow(x + 250, 335, x + 440, 335, 4, 34, false);
+            world.fishes.push({ x: x + 380, y: 175, collected: false });
+
+            addSegment(480, 375, 675);
+            addSpikeRow(x + 720, 375, x + 920, 375, 4, 34, true);
+            world.fishes.push({ x: x + 840, y: 535, collected: false });
+
+            addSegment(460, 50, 355);
+            world.fishes.push({ x: x + 1320, y: 195, collected: false });
+
+            addSegment(660, 75, 645);
+            addDiamondSpike(x + 1780, 215, 38, 75);
+            world.obstacles.push({ type: 'saw', x: x + 1780, y: 515, r: 38, speed: 6, sparked: false });
+            world.fishes.push({ x: x + 1780, y: 360, collected: false });
+
+            addSegment(660, 75, 645);
+            world.obstacles.push({ type: 'cucumber', x: x + 2380, y: 545, w: 34, h: 175, sparked: false });
+            addDiamondSpike(x + 2380, 205, 38, 75);
+            world.fishes.push({ x: x + 2380, y: 360, collected: false });
+
+            addSegment(450, 80, 640);
+            world.portals.push({ type: 'gravity_flip', x: x + 2860, y: 360, h: 250, triggered: false });
+
+            addSegment(740, 80, 640);
+            world.obstacles.push({ type: 'laser', x: x + 3250, y1: 80, y2: 335, sparked: false });
+            world.obstacles.push({ type: 'laser', x: x + 3650, y1: 385, y2: 640, sparked: false });
+            world.fishes.push({ x: x + 3450, y: 360, collected: false });
+
+            addSegment(450, 80, 640);
+            world.portals.push({ type: 'gravity_normal', x: x + 4080, y: 360, h: 250, triggered: false });
+
+            addSegment(860, 70, 650);
+            addDiamondSpike(x + 4550, 360, 42, 82);
+            world.obstacles.push({ type: 'saw', x: x + 4920, y: 205, r: 38, speed: 7, sparked: false });
+            world.obstacles.push({ type: 'saw', x: x + 4920, y: 515, r: 38, speed: -7, sparked: false });
+            world.fishes.push({ x: x + 4920, y: 360, collected: false });
+
+            addSegment(550, 80, 640);
+            world.levelLength = world.generatedUntilX - 200;
+        }
+
+        function generateLevel4CatnipOverdrive() {
+            const x = world.generatedUntilX;
+
+            world.portals.push({ type: 'speed_fast', x: x + 140, y: 360, h: 260, triggered: false });
+
+            addSegment(820, 70, 650);
+            addDiamondSpike(x + 480, 360, 44, 86);
+            world.fishes.push({ x: x + 480, y: 170, collected: false });
+            addDiamondSpike(x + 860, 360, 44, 86);
+            world.fishes.push({ x: x + 860, y: 550, collected: false });
+
+            addSegment(440, 45, 315);
+            addSpikeRow(x + 1120, 315, x + 1340, 315, 5, 34, false);
+            addSegment(460, 395, 675);
+            addSpikeRow(x + 1580, 395, x + 1800, 395, 5, 34, true);
+            world.fishes.push({ x: x + 1690, y: 550, collected: false });
+
+            addSegment(500, 75, 645);
+            world.portals.push({ type: 'gravity_flip', x: x + 2160, y: 360, h: 250, triggered: false });
+
+            addSegment(760, 75, 645);
+            world.obstacles.push({ type: 'saw', x: x + 2560, y: 215, r: 40, speed: 7.5, sparked: false });
+            world.obstacles.push({ type: 'saw', x: x + 2560, y: 505, r: 40, speed: -7.5, sparked: false });
+            world.fishes.push({ x: x + 2560, y: 360, collected: false });
+
+            addDiamondSpike(x + 2940, 230, 38, 76);
+            addDiamondSpike(x + 2940, 490, 38, 76);
+            world.fishes.push({ x: x + 2940, y: 360, collected: false });
+
+            addSegment(460, 75, 645);
+            world.portals.push({ type: 'gravity_normal', x: x + 3380, y: 360, h: 250, triggered: false });
+
+            addSegment(880, 70, 650);
+            world.obstacles.push({ type: 'laser', x: x + 3820, y1: 70, y2: 320, sparked: false });
+            addSpikeRow(x + 3740, 650, x + 3900, 650, 4, 42, false);
+            world.obstacles.push({ type: 'laser', x: x + 4220, y1: 400, y2: 650, sparked: false });
+            addSpikeRow(x + 4140, 70, x + 4300, 70, 4, 42, true);
+            world.fishes.push({ x: x + 4020, y: 360, collected: false });
+
+            addSegment(560, 80, 640);
+            world.levelLength = world.generatedUntilX - 200;
+        }
+
+        function appendEndlessChunk() {
+            const startX = world.generatedUntilX;
+            const d = Math.min(world.endlessDifficulty, 12);
+            const pattern = Math.floor(Math.random() * 6);
+            const squeeze = d * 4.5;
+
+            if (pattern === 0) {
+                const len = 520;
+                addSegment(len, 50 + squeeze, 410 - squeeze * 0.35);
+                addSpikeRow(startX + 260, 410 - squeeze * 0.35, startX + len, 410 - squeeze * 0.35, 5, 34, false);
+                world.fishes.push({ x: startX + len * 0.72, y: 215, collected: false });
+
+                addSegment(len, 290 + squeeze * 0.35, 670 - squeeze);
+                addSpikeRow(startX + len + 240, 290 + squeeze * 0.35, startX + len * 2, 290 + squeeze * 0.35, 5, 34, true);
+                world.fishes.push({ x: startX + len * 1.72, y: 495, collected: false });
+            } else if (pattern === 1) {
+                const len = 780;
+                addSegment(len, 75, 645);
+                addDiamondSpike(startX + 270, 245, 36 + d * 0.5, 70 + d * 1.2);
+                addDiamondSpike(startX + 550, 475, 36 + d * 0.5, 70 + d * 1.2);
+                world.fishes.push({ x: startX + 410, y: 360, collected: false });
+            } else if (pattern === 2) {
+                const len = 760;
+                addSegment(len, 80, 640);
+                world.obstacles.push({ type: 'saw', x: startX + 260, y: 235, r: 36 + d * 0.8, speed: 5, sparked: false });
+                world.obstacles.push({ type: 'saw', x: startX + 540, y: 485, r: 36 + d * 0.8, speed: -5, sparked: false });
+                world.fishes.push({ x: startX + 400, y: 360, collected: false });
+            } else if (pattern === 3) {
+                const len = 760;
+                addSegment(len, 80, 640);
+                world.obstacles.push({ type: 'cucumber', x: startX + 260, y: 165, w: 34, h: 160 + d * 2.5, sparked: false });
+                addSpikeRow(startX + 200, 640, startX + 320, 640, 3, 36, false);
+                world.obstacles.push({ type: 'cucumber', x: startX + 540, y: 555, w: 34, h: 160 + d * 2.5, sparked: false });
+                addSpikeRow(startX + 480, 80, startX + 600, 80, 3, 36, true);
+                world.fishes.push({ x: startX + 400, y: 360, collected: false });
+            } else if (pattern === 4) {
+                const len = 780;
+                addSegment(len, 80, 640);
+                world.obstacles.push({ type: 'laser', x: startX + 260, y1: 80, y2: 320 + d * 3, sparked: false });
+                world.obstacles.push({ type: 'laser', x: startX + 560, y1: 400 - d * 3, y2: 640, sparked: false });
+                world.fishes.push({ x: startX + 410, y: 360, collected: false });
+            } else {
+                const len = 760;
+                addSegment(len, 85, 635);
+                const flip = Math.random() > 0.42;
+                world.portals.push({
+                    type: flip ? (player.gravityInverted ? 'gravity_normal' : 'gravity_flip') : 'speed_fast',
+                    x: startX + 210,
+                    y: 360,
+                    h: 240,
+                    triggered: false
+                });
+                addDiamondSpike(startX + 520, 360, 40, 78);
+                world.fishes.push({ x: startX + 520, y: 175, collected: false });
+            }
+
+            world.endlessDifficulty += 0.35;
+        }
+
+        // Ensures the canvas always renders a vivid synthwave corridor & obstacles on the Menu
+        function prepareMenuBackgroundWorld() {
+            buildLevel(selectedLevelIdx);
+            cameraX = 0;
+            particles = [];
+            floatingTexts = [];
+        }
+
+        // =========================================================================
+        // 5. PLAYER STATE, PRACTICE MODE & COLLISION ENGINE
+        // =========================================================================
+        let gameState = 'MENU'; // 'MENU' | 'PLAYING' | 'CRASHED' | 'VICTORY'
+        let selectedLevelIdx = 0;
+        let isPracticeMode = false;
+        let attemptCount = 1;
+        let isHolding = false;
+
+        let checkpoints = [];
+        let checkpointTimer = 0;
+
+        let player = {
+            x: 180,
+            y: 360,
+            radius: 14,
+            speed: 400,
+            speedMult: 1.0,
+            gravityInverted: false,
+            angle: 0,
+            trail: [],
+            runFish: 0,
+            closeCalls: 0,
+            bonusPoints: 0
+        };
+
+        let cameraX = 0;
+        let shakeTimer = 0;
+        let shakeIntensity = 0;
+        let particles = [];
+        let floatingTexts = [];
+        let globalTime = 0;
+
+        function resetRun(incrementAttempt = false, useCheckpoint = false) {
+            if (!currentUser) return;
+            if (incrementAttempt) {
+                attemptCount++;
+            } else {
+                attemptCount = 1;
+                checkpoints = [];
+            }
+
+            const lvl = LEVELS[selectedLevelIdx];
+            isHolding = false;
+
+            if (useCheckpoint && isPracticeMode && checkpoints.length > 0) {
+                const cp = checkpoints[checkpoints.length - 1];
+                player.x = cp.x;
+                player.y = cp.y;
+                player.speedMult = cp.speedMult;
+                player.gravityInverted = cp.gravityInverted;
+                player.angle = 0;
+                player.trail = [{ x: cp.x, y: cp.y }];
+                cameraX = player.x - Math.min(260, viewWidth * 0.24);
+                shakeTimer = 0;
+                gameState = 'PLAYING';
+                updateHudVisibility();
+                document.getElementById('hudAttemptText').textContent = `Attempt ${attemptCount}`;
+                spawnBurst(player.x, player.y, ['#34d399', '#00f3ff'], 18, true);
+                audio.startMusic(lvl.bpm);
+                return;
+            }
+
+            checkpoints = [];
+            checkpointTimer = 0;
+            buildLevel(selectedLevelIdx);
+
+            player = {
+                x: 180,
+                y: 360,
+                radius: 14,
+                speed: lvl.baseSpeed,
+                speedMult: 1.0,
+                gravityInverted: false,
+                angle: 0,
+                trail: [{ x: 180, y: 360 }],
+                runFish: 0,
+                closeCalls: 0,
+                bonusPoints: 0
+            };
+
+            cameraX = 0;
+            shakeTimer = 0;
+            particles = [];
+            floatingTexts = [];
+            gameState = 'PLAYING';
+
+            updateHudVisibility();
+            document.getElementById('hudLevelTitle').textContent = lvl.name;
+            document.getElementById('hudAttemptText').textContent = `Attempt ${attemptCount}`;
+            document.getElementById('hudFishCount').textContent = '0';
+            document.getElementById('hudComboText').classList.add('hidden');
+            document.getElementById('hudPracticeBadge').classList.toggle('hidden', !isPracticeMode);
+            document.getElementById('hudGodBadge').classList.toggle('hidden', !(isAdminUser() && adminCheats.godMode));
+            document.getElementById('hudBotBadge').classList.toggle('hidden', !(isAdminUser() && adminCheats.autoBot));
+
+            if (lvl.endless) {
+                document.getElementById('progressContainer').classList.add('hidden');
+                document.getElementById('endlessScoreContainer').classList.remove('hidden');
+                document.getElementById('hudEndlessDist').textContent = '0m';
+                document.getElementById('hudEndlessPoints').textContent = '0';
+            } else {
+                document.getElementById('progressContainer').classList.remove('hidden');
+                document.getElementById('endlessScoreContainer').classList.add('hidden');
+                document.getElementById('hudPercent').textContent = '0%';
+                document.getElementById('hudProgressBar').style.width = '0%';
+            }
+
+            audio.startMusic(lvl.bpm);
+        }
+
+        function spawnBurst(x, y, colors, count = 24, isPaw = false) {
+            for (let i = 0; i < count; i++) {
+                const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+                const spd = 90 + Math.random() * 340;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(ang) * spd,
+                    vy: Math.sin(ang) * spd,
+                    size: isPaw ? 9 + Math.random() * 5 : 4 + Math.random() * 6,
+                    color: colors[i % colors.length],
+                    alpha: 1,
+                    life: 0.45 + Math.random() * 0.45,
+                    maxLife: 0.85,
+                    type: isPaw ? 'paw' : 'circle',
+                    rot: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function spawnFloatingText(x, y, text, color = '#ffd166') {
+            floatingTexts.push({ x, y, text, color, life: 0.9 });
+        }
+
+        function triggerCrash() {
+            if (gameState !== 'PLAYING') return;
+            if (isAdminUser() && adminCheats.godMode) return;
+
+            gameState = 'CRASHED';
+            isHolding = false;
+            shakeTimer = 0.42;
+            shakeIntensity = 18;
+            audio.stopMusic();
+            audio.playMeow();
+            triggerHaptic([60, 40, 90]);
+
+            const skin = getSelectedSkin();
+            spawnBurst(player.x, player.y, [...skin.trailColors, '#ffffff', '#ff4ecd'], 36, true);
+
+            if (isPracticeMode && checkpoints.length > 0) {
+                spawnFloatingText(player.x, player.y - 25, 'CHECKPOINT RESPAWN!', '#34d399');
+                setTimeout(() => {
+                    if (gameState === 'CRASHED') {
+                        resetRun(true, true);
+                    }
+                }, 550);
+                return;
+            }
+
+            const lvl = LEVELS[selectedLevelIdx];
+            if (lvl.endless) {
+                const distMeters = Math.max(0, Math.floor((player.x - 180) / 35));
+                const totalScore = distMeters * 10 + player.runFish * 25 + player.bonusPoints;
+                if (currentUser) {
+                    if (distMeters > currentUser.endlessBestDist) currentUser.endlessBestDist = distMeters;
+                    if (totalScore > currentUser.endlessBestScore) currentUser.endlessBestScore = totalScore;
+                }
+                showEndModal(false, `${distMeters}m`, `${currentUser ? currentUser.endlessBestDist : distMeters}m`, 0, totalScore);
+            } else {
+                const pct = Math.min(99, Math.max(0, Math.floor(((player.x - 180) / (world.levelLength - 180)) * 100)));
+                if (currentUser && !isPracticeMode && pct > currentUser.levelBest[selectedLevelIdx]) {
+                    currentUser.levelBest[selectedLevelIdx] = pct;
+                }
+                showEndModal(false, `${pct}%`, `${currentUser ? currentUser.levelBest[selectedLevelIdx] : pct}%`);
+            }
+            persistSave();
+        }
+
+        function triggerVictory() {
+            if (gameState !== 'PLAYING') return;
+            gameState = 'VICTORY';
+            isHolding = false;
+            audio.stopMusic();
+            audio.playVictory();
+            triggerHaptic([40, 30, 40, 30, 100]);
+
+            const bonus = isPracticeMode ? 2 : (selectedLevelIdx + 1) * 6;
+            if (currentUser) {
+                if (!isPracticeMode) {
+                    currentUser.levelBest[selectedLevelIdx] = 100;
+                }
+                currentUser.fish += bonus;
+            }
+            persistSave();
+
+            const skin = getSelectedSkin();
+            spawnBurst(player.x, player.y, [...skin.trailColors, '#ffd166', '#00f3ff'], 48, true);
+            showEndModal(true, '100%', `${currentUser ? currentUser.levelBest[selectedLevelIdx] : 100}%`, bonus);
+        }
+
+        function getWallYAt(wallPoints, x) {
+            if (!wallPoints || wallPoints.length === 0) return 360;
+            for (let i = 0; i < wallPoints.length - 1; i++) {
+                const p1 = wallPoints[i];
+                const p2 = wallPoints[i + 1];
+                if (x >= p1.x && x <= p2.x) {
+                    const t = (x - p1.x) / (p2.x - p1.x || 1);
+                    return p1.y + t * (p2.y - p1.y);
+                }
+            }
+            return wallPoints[wallPoints.length - 1].y;
+        }
+
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const l2 = dx * dx + dy * dy;
+            if (l2 === 0) return Math.hypot(px - x1, py - y1);
+            let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+        }
+
+        function pointInPolygon(px, py, poly) {
+            let inside = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const xi = poly[i].x, yi = poly[i].y;
+                const xj = poly[j].x, yj = poly[j].y;
+                const intersect = ((yi > py) !== (yj > py)) &&
+                    (px < (xj - xi) * (py - yi) / ((yj - yi) || 0.00001) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function circlePolygonDist(cx, cy, poly) {
+            if (pointInPolygon(cx, cy, poly)) return 0;
+            let minDist = Infinity;
+            for (let i = 0; i < poly.length; i++) {
+                const p1 = poly[i];
+                const p2 = poly[(i + 1) % poly.length];
+                const d = distToSegment(cx, cy, p1.x, p1.y, p2.x, p2.y);
+                if (d < minDist) minDist = d;
+            }
+            return minDist;
+        }
+
+        function registerCloseCall(obs) {
+            if (obs.sparked) return;
+            obs.sparked = true;
+            player.closeCalls++;
+            player.bonusPoints += 15;
+            audio.playPurrSpark();
+            triggerHaptic(18);
+            spawnBurst(player.x, player.y, ['#00f3ff', '#ffd166'], 8, false);
+            spawnFloatingText(player.x, player.y - 26, 'CLOSE CALL! +15', '#00f3ff');
+            const comboEl = document.getElementById('hudComboText');
+            comboEl.textContent = `• Sparks: ${player.closeCalls}`;
+            comboEl.classList.remove('hidden');
+        }
+
+        function computeAutoBotHold(vx) {
+            const lookAheadX = player.x + Math.max(130, vx * 0.34);
+            const ceilY = getWallYAt(world.topWall, lookAheadX);
+            const floorY = getWallYAt(world.botWall, lookAheadX);
+            let targetY = (ceilY + floorY) * 0.5;
+
+            for (const obs of world.obstacles) {
+                if (obs.x > player.x - 10 && obs.x < lookAheadX + 60) {
+                    const obsY = obs.type === 'laser' ? (obs.y1 + obs.y2) * 0.5 : obs.y;
+                    if (obsY < targetY) {
+                        targetY = Math.min(floorY - 45, obsY + 135);
+                    } else {
+                        targetY = Math.max(ceilY + 45, obsY - 135);
+                    }
+                    break;
+                }
+            }
+
+            const wantUp = player.y > targetY;
+            return player.gravityInverted ? !wantUp : wantUp;
+        }
+
+        function updateGame(dt) {
+            globalTime += dt;
+            audio.beatPulse = Math.max(0, audio.beatPulse - dt * 3.8);
+
+            if (shakeTimer > 0) {
+                shakeTimer = Math.max(0, shakeTimer - dt);
+            }
+
+            if (sessionState.deviceMode === 'mobile') {
+                const pill = document.getElementById('mobileTouchPill');
+                const lbl = document.getElementById('mobileTouchLabel');
+                if (isHolding) {
+                    pill.classList.add('touch-pill-active');
+                    lbl.textContent = player.gravityInverted ? 'DIVING 45° ▼' : 'SOARING 45° ▲';
+                } else {
+                    pill.classList.remove('touch-pill-active');
+                    lbl.textContent = 'HOLD ANYWHERE TO FLY';
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.rot += 4 * dt;
+                p.life -= dt;
+                p.alpha = Math.max(0, p.life / p.maxLife);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y -= 55 * dt;
+                ft.life -= dt;
+                if (ft.life <= 0) floatingTexts.splice(i, 1);
+            }
+
+            if (gameState !== 'PLAYING') {
+                if (gameState === 'MENU') {
+                    cameraX += 140 * dt;
+                    if (cameraX > 4200) cameraX = 0;
+                }
+                return;
+            }
+
+            const lvl = LEVELS[selectedLevelIdx];
+            const endlessRamp = lvl.endless ? Math.min(1.48, 1 + (player.x / 26000)) : 1.0;
+            const adminSpeedBoost = isAdminUser() ? adminCheats.speedMult : 1.0;
+            const vx = player.speed * player.speedMult * endlessRamp * adminSpeedBoost;
+
+            if (isAdminUser() && adminCheats.autoBot) {
+                isHolding = computeAutoBotHold(vx);
+            }
+
+            const goingUp = player.gravityInverted ? !isHolding : isHolding;
+            const vy = goingUp ? -vx : vx;
+
+            player.x += vx * dt;
+            player.y += vy * dt;
+
+            if (isAdminUser() && adminCheats.godMode) {
+                const ceilBound = getWallYAt(world.topWall, player.x) + player.radius + 6;
+                const floorBound = getWallYAt(world.botWall, player.x) - player.radius - 6;
+                if (player.y < ceilBound) player.y = ceilBound;
+                if (player.y > floorBound) player.y = floorBound;
+            }
+
+            const targetAngle = goingUp ? -Math.PI / 4 : Math.PI / 4;
+            player.angle += (targetAngle - player.angle) * Math.min(1, dt * 24);
+
+            const lastPt = player.trail[player.trail.length - 1];
+            if (!lastPt || Math.hypot(player.x - lastPt.x, player.y - lastPt.y) > 10) {
+                player.trail.push({ x: player.x, y: player.y });
+            }
+            while (player.trail.length > 2 && player.trail[1].x < cameraX - 100) {
+                player.trail.shift();
+            }
+
+            cameraX = player.x - Math.min(260, viewWidth * 0.24);
+
+            if (isPracticeMode) {
+                checkpointTimer += dt;
+                if (checkpointTimer >= 1.55) {
+                    checkpointTimer = 0;
+                    checkpoints.push({
+                        x: player.x,
+                        y: player.y,
+                        speedMult: player.speedMult,
+                        gravityInverted: player.gravityInverted
+                    });
+                    spawnBurst(player.x, player.y, ['#34d399', '#a7f3d0'], 8, true);
+                    spawnFloatingText(player.x, player.y - 22, 'CHECKPOINT', '#34d399');
+                }
+            }
+
+            if (lvl.endless && world.generatedUntilX - player.x < 2400) {
+                appendEndlessChunk();
+            }
+
+            // Update spinning saws
+            for (const obs of world.obstacles) {
+                if (obs.type === 'saw') {
+                    obs.rot = (obs.rot || 0) + (obs.speed || 5) * dt;
+                }
+            }
+
+            // Portal triggers
+            for (const portal of world.portals) {
+                if (!portal.triggered && Math.abs(player.x - portal.x) < 34 && Math.abs(player.y - portal.y) < portal.h * 0.52) {
+                    portal.triggered = true;
+                    if (portal.type === 'speed_fast') {
+                        player.speedMult = 1.24;
+                        audio.playPortalWhoosh(false);
+                        spawnBurst(portal.x, portal.y, ['#ff4ecd', '#ffd166'], 16, false);
+                        spawnFloatingText(portal.x, portal.y - 45, 'ZOOMIES BOOST!', '#ff4ecd');
+                    } else if (portal.type === 'speed_normal') {
+                        player.speedMult = 1.0;
+                        audio.playPortalWhoosh(false);
+                        spawnBurst(portal.x, portal.y, ['#00f3ff', '#90e0ef'], 14, false);
+                    } else if (portal.type === 'gravity_flip') {
+                        player.gravityInverted = true;
+                        audio.playPortalWhoosh(true);
+                        spawnBurst(portal.x, portal.y, ['#00f3ff', '#7b2cbf'], 18, false);
+                        spawnFloatingText(portal.x, portal.y - 45, 'GRAVITY FLIP!', '#00f3ff');
+                    } else if (portal.type === 'gravity_normal') {
+                        player.gravityInverted = false;
+                        audio.playPortalWhoosh(true);
+                        spawnBurst(portal.x, portal.y, ['#34d399', '#00f3ff'], 18, false);
+                        spawnFloatingText(portal.x, portal.y - 45, 'GRAVITY NORMAL!', '#34d399');
+                    }
+                    triggerHaptic(25);
+                }
+            }
+
+            // Golden Fish pickups
+            for (const fish of world.fishes) {
+                if (!fish.collected && Math.hypot(player.x - fish.x, player.y - fish.y) < player.radius + 20) {
+                    fish.collected = true;
+                    player.runFish++;
+                    if (currentUser) {
+                        currentUser.fish++;
+                    }
+                    persistSave();
+                    audio.playFishChime();
+                    triggerHaptic(20);
+                    document.getElementById('hudFishCount').textContent = String(player.runFish);
+                    spawnBurst(fish.x, fish.y, ['#ffd166', '#fff3b0', '#ff9e00'], 12, false);
+                    spawnFloatingText(fish.x, fish.y - 18, '+1 🐟', '#ffd166');
+                    updateMenuFishLabels();
+                }
+            }
+
+            // Corridor ceiling & floor collision (unless God Mode is active)
+            const topY = getWallYAt(world.topWall, player.x);
+            const botY = getWallYAt(world.botWall, player.x);
+            if (!(isAdminUser() && adminCheats.godMode)) {
+                if (player.y - player.radius < topY || player.y + player.radius > botY) {
+                    triggerCrash();
+                    return;
+                }
+            }
+
+            // Obstacle collisions & close-call detection
+            if (!(isAdminUser() && adminCheats.godMode)) {
+                for (const obs of world.obstacles) {
+                    if (Math.abs(obs.x - player.x) > 160) continue;
+
+                    if (obs.type === 'spike_triangle' || obs.type === 'diamond_spike') {
+                        const d = circlePolygonDist(player.x, player.y, obs.pts);
+                        if (d < player.radius - 2.5) {
+                            triggerCrash();
+                            return;
+                        } else if (d < player.radius + 14) {
+                            registerCloseCall(obs);
+                        }
+                    } else if (obs.type === 'saw') {
+                        const dist = Math.hypot(player.x - obs.x, player.y - obs.y);
+                        if (dist < player.radius + obs.r - 4) {
+                            triggerCrash();
+                            return;
+                        } else if (dist < player.radius + obs.r + 14) {
+                            registerCloseCall(obs);
+                        }
+                    } else if (obs.type === 'cucumber') {
+                        const left = obs.x - obs.w * 0.5;
+                        const right = obs.x + obs.w * 0.5;
+                        const top = obs.y - obs.h * 0.5;
+                        const bottom = obs.y + obs.h * 0.5;
+                        const closestX = Math.max(left, Math.min(player.x, right));
+                        const closestY = Math.max(top, Math.min(player.y, bottom));
+                        const dist = Math.hypot(player.x - closestX, player.y - closestY);
+                        if (dist < player.radius - 2) {
+                            triggerCrash();
+                            return;
+                        } else if (dist < player.radius + 13) {
+                            registerCloseCall(obs);
+                        }
+                    } else if (obs.type === 'laser') {
+                        const d = distToSegment(player.x, player.y, obs.x, obs.y1, obs.x, obs.y2);
+                        if (d < player.radius + 3) {
+                            triggerCrash();
+                            return;
+                        } else if (d < player.radius + 16) {
+                            registerCloseCall(obs);
+                        }
+                    }
+                }
+            }
+
+            // Update HUD progress or Endless score
+            if (lvl.endless) {
+                const distMeters = Math.max(0, Math.floor((player.x - 180) / 35));
+                const totalScore = distMeters * 10 + player.runFish * 25 + player.bonusPoints;
+                document.getElementById('hudEndlessDist').textContent = `${distMeters}m`;
+                document.getElementById('hudEndlessPoints').textContent = String(totalScore);
+            } else {
+                const pct = Math.min(100, Math.max(0, Math.floor(((player.x - 180) / (world.levelLength - 180)) * 100)));
+                document.getElementById('hudPercent').textContent = `${pct}%`;
+                document.getElementById('hudProgressBar').style.width = `${pct}%`;
+                if (player.x >= world.levelLength) {
+                    triggerVictory();
+                }
+            }
+        }
+
+        // =========================================================================
+        // 6. SYNTHWAVE CANVAS RENDERING ENGINE
+        // =========================================================================
+        function getSelectedSkin() {
+            const id = (currentUser && currentUser.selectedSkin) || 'nyan';
+            return SKINS.find(s => s.id === id) || SKINS[0];
+        }
+
+        function drawBackground(lvl) {
+            const grad = ctx.createLinearGradient(0, 0, 0, VIRTUAL_HEIGHT);
+            grad.addColorStop(0, lvl.themeTop);
+            grad.addColorStop(1, lvl.themeBottom);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, viewWidth, VIRTUAL_HEIGHT);
+
+            // Retro synthwave sun
+            const sunX = viewWidth * 0.72;
+            const sunY = VIRTUAL_HEIGHT * 0.36;
+            const sunR = 115 + audio.beatPulse * 14;
+            const sunGrad = ctx.createLinearGradient(0, sunY - sunR, 0, sunY + sunR);
+            sunGrad.addColorStop(0, '#ffbe0b');
+            sunGrad.addColorStop(0.55, '#ff4ecd');
+            sunGrad.addColorStop(1, '#7209b7');
+            ctx.save();
+            ctx.globalAlpha = 0.32;
+            ctx.fillStyle = sunGrad;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Scrolling synthwave perspective grid
+            ctx.save();
+            ctx.strokeStyle = lvl.accent;
+            ctx.globalAlpha = 0.14 + audio.beatPulse * 0.08;
+            ctx.lineWidth = 1.5;
+            const gridSpacing = 80;
+            const offset = -(cameraX * 0.35) % gridSpacing;
+            for (let gx = offset; gx < viewWidth; gx += gridSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(gx, 0);
+                ctx.lineTo(gx, VIRTUAL_HEIGHT);
+                ctx.stroke();
+            }
+            for (let gy = 40; gy < VIRTUAL_HEIGHT; gy += 60) {
+                ctx.beginPath();
+                ctx.moveTo(0, gy);
+                ctx.lineTo(viewWidth, gy);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawCorridor(lvl) {
+            if (world.topWall.length < 2 || world.botWall.length < 2) return;
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Top solid wall fill
+            ctx.fillStyle = lvl.wallFill;
+            ctx.beginPath();
+            ctx.moveTo(world.topWall[0].x, -120);
+            for (const pt of world.topWall) ctx.lineTo(pt.x, pt.y);
+            ctx.lineTo(world.topWall[world.topWall.length - 1].x, -120);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bottom solid wall fill
+            ctx.beginPath();
+            ctx.moveTo(world.botWall[0].x, VIRTUAL_HEIGHT + 120);
+            for (const pt of world.botWall) ctx.lineTo(pt.x, pt.y);
+            ctx.lineTo(world.botWall[world.botWall.length - 1].x, VIRTUAL_HEIGHT + 120);
+            ctx.closePath();
+            ctx.fill();
+
+            // Neon edge strokes
+            ctx.strokeStyle = lvl.wallStroke;
+            ctx.lineWidth = 4 + audio.beatPulse * 2;
+            ctx.shadowColor = lvl.wallStroke;
+            ctx.shadowBlur = 14;
+
+            ctx.beginPath();
+            world.topWall.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+            ctx.stroke();
+
+            ctx.beginPath();
+            world.botWall.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+            ctx.stroke();
+
+            // Finish line gate for finite stages
+            if (!lvl.endless && isFinite(world.levelLength)) {
+                const fx = world.levelLength;
+                ctx.strokeStyle = '#ffd166';
+                ctx.shadowColor = '#ffd166';
+                ctx.lineWidth = 5;
+                ctx.setLineDash([14, 10]);
+                ctx.beginPath();
+                ctx.moveTo(fx, 40);
+                ctx.lineTo(fx, VIRTUAL_HEIGHT - 40);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.restore();
+        }
+
+        function drawPortalsAndFishes() {
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Portals
+            for (const p of world.portals) {
+                if (p.x < cameraX - 120 || p.x > cameraX + viewWidth + 120) continue;
+                let col = '#00f3ff';
+                let label = 'FLIP';
+                if (p.type === 'speed_fast') { col = '#ff4ecd'; label = 'FAST'; }
+                else if (p.type === 'speed_normal') { col = '#90e0ef'; label = '1X'; }
+                else if (p.type === 'gravity_normal') { col = '#34d399'; label = 'NORM'; }
+
+                ctx.save();
+                ctx.strokeStyle = col;
+                ctx.shadowColor = col;
+                ctx.shadowBlur = 16;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, 18, p.h * 0.45, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = col;
+                ctx.font = 'bold 11px Orbitron, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(label, p.x, p.y - p.h * 0.48);
+                ctx.restore();
+            }
+
+            // Golden Fish treats
+            for (const f of world.fishes) {
+                if (f.collected) continue;
+                if (f.x < cameraX - 80 || f.x > cameraX + viewWidth + 80) continue;
+                const bob = Math.sin(globalTime * 5 + f.x * 0.02) * 5;
+                ctx.save();
+                ctx.translate(f.x, f.y + bob);
+                ctx.font = '24px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🐟', 0, 0);
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        function drawObstacles() {
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            for (const obs of world.obstacles) {
+                if (obs.x < cameraX - 180 || obs.x > cameraX + viewWidth + 180) continue;
+
+                if (obs.type === 'spike_triangle' || obs.type === 'diamond_spike') {
+                    ctx.save();
+                    ctx.fillStyle = '#ff2a6d';
+                    ctx.strokeStyle = '#ff9ebb';
+                    ctx.shadowColor = '#ff2a6d';
+                    ctx.shadowBlur = 12;
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    obs.pts.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (obs.type === 'saw') {
+                    ctx.save();
+                    ctx.translate(obs.x, obs.y);
+                    ctx.rotate(obs.rot || 0);
+                    const teeth = 10;
+                    ctx.fillStyle = '#ff5400';
+                    ctx.strokeStyle = '#ffd166';
+                    ctx.shadowColor = '#ff5400';
+                    ctx.shadowBlur = 12;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < teeth * 2; i++) {
+                        const r = i % 2 === 0 ? obs.r : obs.r * 0.68;
+                        const a = (Math.PI * i) / teeth;
+                        const px = Math.cos(a) * r;
+                        const py = Math.sin(a) * r;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, obs.r * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                } else if (obs.type === 'cucumber') {
+                    ctx.save();
+                    ctx.translate(obs.x, obs.y);
+                    ctx.fillStyle = '#2ec4b6';
+                    ctx.strokeStyle = '#cbf3f0';
+                    ctx.shadowColor = '#2ec4b6';
+                    ctx.shadowBlur = 12;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.roundRect(-obs.w * 0.5, -obs.h * 0.5, obs.w, obs.h, 16);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (obs.type === 'laser') {
+                    ctx.save();
+                    ctx.strokeStyle = '#ff0055';
+                    ctx.shadowColor = '#ff0055';
+                    ctx.shadowBlur = 16;
+                    ctx.lineWidth = 7;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, obs.y1);
+                    ctx.lineTo(obs.x, obs.y2);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function drawCatPilot() {
+            if (gameState === 'CRASHED' && (!isPracticeMode || checkpoints.length === 0)) return;
+            const skin = getSelectedSkin();
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Rainbow / skin ribbon trail
+            if (player.trail.length > 1) {
+                const colors = skin.trailColors;
+                colors.forEach((col, bandIdx) => {
+                    const yShift = (bandIdx - (colors.length - 1) / 2) * 4.5;
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = 4.2;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.beginPath();
+                    player.trail.forEach((pt, idx) => {
+                        if (idx === 0) ctx.moveTo(pt.x, pt.y + yShift);
+                        else ctx.lineTo(pt.x, pt.y + yShift);
+                    });
+                    ctx.stroke();
+                });
+            }
+
+            // Draw cat head at player position
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+            if (player.gravityInverted) {
+                ctx.scale(1, -1);
+            }
+
+            const r = player.radius + 4;
+            ctx.fillStyle = skin.bodyColor;
+            ctx.strokeStyle = skin.neonTrim || '#ffffff';
+            ctx.shadowColor = skin.visorColor;
+            ctx.shadowBlur = 14;
+            ctx.lineWidth = 2.5;
+
+            // Head circle
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Left & right cat ears
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.85, -r * 0.45);
+            ctx.lineTo(-r * 0.95, -r * 1.45);
+            ctx.lineTo(-r * 0.15, -r * 0.88);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(r * 0.85, -r * 0.45);
+            ctx.lineTo(r * 0.95, -r * 1.45);
+            ctx.lineTo(r * 0.15, -r * 0.88);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Glowing eyes / visor
+            ctx.fillStyle = skin.visorColor;
+            ctx.beginPath();
+            ctx.arc(-5, -2, 3.3, 0, Math.PI * 2);
+            ctx.arc(6, -2, 3.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cute nose & whiskers
+            ctx.fillStyle = skin.earInner;
+            ctx.beginPath();
+            ctx.arc(1, 3, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+            ctx.restore();
+        }
+
+        function drawParticlesAndText() {
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            for (const p of particles) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                if (p.type === 'paw') {
+                    ctx.font = `${Math.round(p.size * 1.5)}px Fredoka, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🐾', 0, 0);
+                } else {
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            for (const ft of floatingTexts) {
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, ft.life * 1.3);
+                ctx.font = 'bold 14px Orbitron, sans-serif';
+                ctx.fillStyle = ft.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        function renderScene() {
+            const lvl = LEVELS[selectedLevelIdx] || LEVELS[0];
+            ctx.save();
+            ctx.scale(renderScale, renderScale);
+
+            if (shakeTimer > 0) {
+                const sx = (Math.random() - 0.5) * shakeIntensity;
+                const sy = (Math.random() - 0.5) * shakeIntensity;
+                ctx.translate(sx, sy);
+            }
+
+            drawBackground(lvl);
+            drawCorridor(lvl);
+            drawPortalsAndFishes();
+            drawObstacles();
+            drawCatPilot();
+            drawParticlesAndText();
+
+            ctx.restore();
+        }
+
+        let lastFrameTime = performance.now();
+        function gameLoop(now) {
+            const rawDt = (now - lastFrameTime) / 1000;
+            lastFrameTime = now;
+            const dt = Math.min(rawDt, 0.05);
+
+            updateGame(dt);
+            renderScene();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // =========================================================================
+        // 7. UI CONTROLLERS, DEVICE SELECTION, ACCOUNTS & AFTABPLAYS ADMIN PANEL
+        // =========================================================================
+        const deviceOverlay = document.getElementById('deviceOverlay');
+        const authOverlay = document.getElementById('authOverlay');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const hudOverlay = document.getElementById('hudOverlay');
+        const endOverlay = document.getElementById('endOverlay');
+        const adminModalOverlay = document.getElementById('adminModalOverlay');
+
+        let authMode = 'login'; // 'login' | 'register'
+
+        function showToast(msg) {
+            const toast = document.getElementById('menuToast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 2200);
+        }
+
+        function applyDeviceModeUI() {
+            const isMobile = sessionState.deviceMode === 'mobile';
+            document.getElementById('deviceBadgeIcon').textContent = isMobile ? '📱' : '💻';
+            document.getElementById('deviceBadgeText').textContent = isMobile ? 'MOBILE UI' : 'PC UI';
+            document.getElementById('menuControlSubtitle').innerHTML = isMobile
+                ? 'Tap &amp; <span class="text-cyan-300 font-bold">HOLD ANYWHERE</span> to soar 45° up • Release to dive 45° down!'
+                : 'Hold <span class="text-cyan-300 font-bold">[SPACE / W / ↑ / CLICK]</span> to soar 45° up • Release to dive 45° down!';
+            document.getElementById('endRestartHint').innerHTML = isMobile
+                ? 'Tap <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-cyan-400/40 text-cyan-300">PLAY AGAIN</span> for instant retry!'
+                : 'Press <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-cyan-400/40 text-cyan-300">[SPACE / R]</span> or <span class="px-1.5 py-0.5 rounded bg-slate-800 border border-cyan-400/40 text-cyan-300">[CLICK]</span> for instant retry!';
+            updateHudVisibility();
+        }
+
+        function updateHudVisibility() {
+            const playing = gameState === 'PLAYING';
+            hudOverlay.classList.toggle('hidden', !playing);
+            document.getElementById('mobileTouchZone').classList.toggle('hidden', !(playing && sessionState.deviceMode === 'mobile'));
+            document.getElementById('pcControlBar').classList.toggle('hidden', !(playing && sessionState.deviceMode !== 'mobile'));
+        }
+
+        function updateMuteUI() {
+            const muted = audio.muted;
+            document.getElementById('muteBtnHud').textContent = muted ? '🔇' : '🔊';
+            document.getElementById('muteIconMenu').textContent = muted ? '🔇' : '🔊';
+            document.getElementById('muteLabelMenu').textContent = muted ? 'Muted' : 'Synth ON';
+        }
+
+        function updateMenuFishLabels() {
+            const fishCount = currentUser ? currentUser.fish : 0;
+            document.getElementById('menuTotalFish').textContent = String(fishCount);
+        }
+
+        function refreshAdminAccessUI() {
+            const isAdmin = isAdminUser();
+            if (!isAdmin) {
+                adminCheats.godMode = false;
+                adminCheats.autoBot = false;
+                adminCheats.speedMult = 1.0;
+                adminModalOverlay.classList.add('hidden');
+            }
+            document.getElementById('menuAdminTag').classList.toggle('hidden', !isAdmin);
+            document.getElementById('adminBtnMenu').classList.toggle('hidden', !isAdmin);
+            document.getElementById('adminBtnHud').classList.toggle('hidden', !isAdmin);
+        }
+
+        function renderLevelCards() {
+            const grid = document.getElementById('levelGrid');
+            grid.innerHTML = '';
+
+            LEVELS.forEach((lvl, idx) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = `level-card neon-box rounded-2xl p-3 text-left flex flex-col justify-between cursor-pointer ${idx === selectedLevelIdx ? 'selected' : ''}`;
+
+                let bestText = '';
+                if (lvl.endless) {
+                    const bestM = currentUser ? currentUser.endlessBestDist : 0;
+                    const bestS = currentUser ? currentUser.endlessBestScore : 0;
+                    bestText = `Best: ${bestM}m • ${bestS} pts`;
+                } else {
+                    const pct = currentUser ? (currentUser.levelBest[idx] || 0) : 0;
+                    bestText = `Best: ${pct}%`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-1 mb-1.5">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-arcade font-black border ${lvl.diffColor}">${lvl.difficulty}</span>
+                            <span class="text-[10px] text-indigo-300 font-bold">${lvl.bpm} BPM</span>
+                        </div>
+                        <div class="text-xs sm:text-sm font-bold text-white leading-snug mb-1">${lvl.name}</div>
+                    </div>
+                    <div class="text-[11px] font-arcade font-bold text-cyan-300 mt-1">${bestText}</div>
+                `;
+
+                card.addEventListener('click', () => {
+                    audio.init();
+                    selectedLevelIdx = idx;
+                    prepareMenuBackgroundWorld();
+                    renderLevelCards();
+                    updateBestStatLabel();
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        function updateBestStatLabel() {
+            const lvl = LEVELS[selectedLevelIdx];
+            const label = document.getElementById('bestStatLabel');
+            const playBtnLabel = document.getElementById('playBtnLabel');
+            if (lvl.endless) {
+                const bestM = currentUser ? currentUser.endlessBestDist : 0;
+                const bestS = currentUser ? currentUser.endlessBestScore : 0;
+                label.textContent = `Endless Best: ${bestM}m (${bestS} pts)`;
+                playBtnLabel.textContent = 'PLAY ENDLESS';
+            } else {
+                const pct = currentUser ? (currentUser.levelBest[selectedLevelIdx] || 0) : 0;
+                label.textContent = `Stage Best: ${pct}%`;
+                playBtnLabel.textContent = 'PLAY NORMAL';
+            }
+        }
+
+        function renderSkinCards() {
+            const grid = document.getElementById('skinGrid');
+            grid.innerHTML = '';
+            const unlocked = (currentUser && currentUser.unlockedSkins) || ['nyan'];
+            const selectedId = (currentUser && currentUser.selectedSkin) || 'nyan';
+
+            SKINS.forEach(skin => {
+                const isUnlocked = unlocked.includes(skin.id);
+                const isSelected = skin.id === selectedId;
+
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = `skin-pill rounded-xl p-2 bg-slate-900/90 border ${isSelected ? 'selected' : 'border-indigo-500/35'} flex flex-col items-center justify-between text-center cursor-pointer`;
+
+                pill.innerHTML = `
+                    <div class="text-2xl mb-1">${skin.emoji}</div>
+                    <div class="text-[11px] font-bold text-white leading-tight">${skin.name}</div>
+                    <div class="mt-1 text-[10px] font-arcade font-bold ${isSelected ? 'text-amber-300' : (isUnlocked ? 'text-emerald-300' : 'text-amber-400')}">
+                        ${isSelected ? 'EQUIPPED' : (isUnlocked ? 'OWNED' : `🐟 ${skin.cost}`)}
+                    </div>
+                `;
+
+                pill.addEventListener('click', () => {
+                    audio.init();
+                    if (!currentUser) return;
+                    if (isUnlocked) {
+                        currentUser.selectedSkin = skin.id;
+                        persistSave();
+                        renderSkinCards();
+                        document.getElementById('skinStatusText').textContent = `Active: ${skin.name}`;
+                        showToast(`Equipped ${skin.name}!`);
+                    } else if (currentUser.fish >= skin.cost) {
+                        currentUser.fish -= skin.cost;
+                        currentUser.unlockedSkins.push(skin.id);
+                        currentUser.selectedSkin = skin.id;
+                        persistSave();
+                        audio.playFishChime();
+                        updateMenuFishLabels();
+                        renderSkinCards();
+                        document.getElementById('skinStatusText').textContent = `Active: ${skin.name}`;
+                        showToast(`Unlocked ${skin.name}!`);
+                    } else {
+                        showToast(`Need ${skin.cost - currentUser.fish} more 🐟!`);
+                    }
+                });
+
+                grid.appendChild(pill);
+            });
+
+            const activeSkin = getSelectedSkin();
+            document.getElementById('skinStatusText').textContent = `Active: ${activeSkin.name}`;
+        }
+
+        function openMainMenu() {
+            gameState = 'MENU';
+            isHolding = false;
+            audio.stopMusic();
+            endOverlay.classList.add('hidden');
+            updateHudVisibility();
+            prepareMenuBackgroundWorld();
+
+            if (currentUser) {
+                audio.muted = Boolean(currentUser.muted);
+                document.getElementById('menuUsernameLabel').textContent = currentUser.username;
+                document.getElementById('menuUserIcon').textContent = isAdminUser() ? '👑' : '🐱';
+            }
+
+            refreshAdminAccessUI();
+            updateMuteUI();
+            updateMenuFishLabels();
+            renderLevelCards();
+            renderSkinCards();
+            updateBestStatLabel();
+            menuOverlay.classList.remove('hidden');
+        }
+
+        function showEndModal(isVictory, s1Val, s2Val, fishEarned = 0, endlessScore = null) {
+            const lvl = LEVELS[selectedLevelIdx];
+            endOverlay.classList.remove('hidden');
+            updateHudVisibility();
+
+            if (isVictory) {
+                document.getElementById('endEmoji').textContent = '🐱🎉🏆';
+                document.getElementById('endTitle').textContent = 'STAGE CLEARED!';
+                document.getElementById('endTitle').className = 'text-2xl sm:text-3xl font-arcade font-black text-emerald-300 tracking-wide mb-1';
+                document.getElementById('endSubtitle').textContent = `Purr-fect wave rhythm on ${lvl.name}!`;
+                document.getElementById('stat1Label').textContent = 'Completion';
+                document.getElementById('stat2Label').textContent = 'Best';
+                document.getElementById('stat3Label').textContent = 'Reward';
+                document.getElementById('stat3Value').textContent = `+${fishEarned} 🐟`;
+            } else if (lvl.endless) {
+                document.getElementById('endEmoji').textContent = '🐱🌌';
+                document.getElementById('endTitle').textContent = 'ZOOMIES ENDED!';
+                document.getElementById('endTitle').className = 'text-2xl sm:text-3xl font-arcade font-black text-amber-300 tracking-wide mb-1';
+                document.getElementById('endSubtitle').textContent = `High Score: ${currentUser ? currentUser.endlessBestScore : 0} pts • ${player.runFish} 🐟 banked!`;
+                document.getElementById('stat1Label').textContent = 'Distance';
+                document.getElementById('stat2Label').textContent = 'Best Dist';
+                document.getElementById('stat3Label').textContent = 'Run Score';
+                document.getElementById('stat3Value').textContent = `${endlessScore || 0}`;
+            } else {
+                document.getElementById('endEmoji').textContent = '😿💥';
+                document.getElementById('endTitle').textContent = 'BONKED!';
+                document.getElementById('endTitle').className = 'text-2xl sm:text-3xl font-arcade font-black text-pink-400 tracking-wide mb-1';
+                document.getElementById('endSubtitle').textContent = 'Watch out for razor crystal spikes, lasers & cucumbers!';
+                document.getElementById('stat1Label').textContent = 'Progress';
+                document.getElementById('stat2Label').textContent = 'Best';
+                document.getElementById('stat3Label').textContent = 'Treats';
+                document.getElementById('stat3Value').textContent = `+${player.runFish} 🐟`;
+            }
+
+            document.getElementById('stat1Value').textContent = s1Val;
+            document.getElementById('stat2Value').textContent = s2Val;
+        }
+
+        // =========================================================================
+        // 8. ACCOUNT AUTH UI & AFTABPLAYS ADMIN PANEL LOGIC
+        // =========================================================================
+        function renderSavedProfiles() {
+            const listEl = document.getElementById('savedProfilesList');
+            const secEl = document.getElementById('savedProfilesSection');
+            const keys = Object.keys(accountsDB);
+
+            if (!keys.length) {
+                secEl.classList.add('hidden');
+                return;
+            }
+
+            secEl.classList.remove('hidden');
+            listEl.innerHTML = '';
+
+            keys.forEach(k => {
+                const acc = normalizeAccountRecord(accountsDB[k]);
+                const isCreator = acc.username.trim().toLowerCase() === 'aftabplays';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/90 border border-indigo-500/40 hover:border-cyan-400 text-left transition cursor-pointer';
+                btn.innerHTML = `
+                    <div class="truncate pr-2">
+                        <div class="text-xs font-bold text-white truncate">${isCreator ? '👑 ' : '🐱 '}${acc.username}</div>
+                        <div class="text-[10px] text-amber-300 font-arcade">🐟 ${acc.fish} • Best ${acc.endlessBestDist}m</div>
+                    </div>
+                    <span class="text-[10px] font-arcade font-bold text-cyan-300">LOAD →</span>
+                `;
+                btn.addEventListener('click', () => {
+                    currentUser = normalizeAccountRecord(acc);
+                    persistSave();
+                    authOverlay.classList.add('hidden');
+                    openMainMenu();
+                });
+                listEl.appendChild(btn);
+            });
+        }
+
+        function openAuthScreen() {
+            gameState = 'MENU';
+            prepareMenuBackgroundWorld();
+            menuOverlay.classList.add('hidden');
+            endOverlay.classList.add('hidden');
+            adminModalOverlay.classList.add('hidden');
+            updateHudVisibility();
+            document.getElementById('authErrorMsg').classList.add('hidden');
+            document.getElementById('authUsernameInput').value = '';
+            document.getElementById('authPasswordInput').value = '';
+            document.getElementById('adminDetectBanner').classList.add('hidden');
+            renderSavedProfiles();
+            authOverlay.classList.remove('hidden');
+        }
+
+        function setAuthMode(mode) {
+            authMode = mode;
+            const loginBtn = document.getElementById('tabLoginBtn');
+            const regBtn = document.getElementById('tabRegisterBtn');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            document.getElementById('authErrorMsg').classList.add('hidden');
+
+            if (mode === 'login') {
+                loginBtn.className = 'py-2 rounded-xl font-arcade text-xs font-bold uppercase transition bg-pink-500/30 border border-pink-400 text-white cursor-pointer';
+                regBtn.className = 'py-2 rounded-xl font-arcade text-xs font-bold uppercase transition text-indigo-300 hover:text-white cursor-pointer';
+                submitBtn.textContent = 'SIGN IN & LAUNCH 🐾';
+            } else {
+                regBtn.className = 'py-2 rounded-xl font-arcade text-xs font-bold uppercase transition bg-pink-500/30 border border-pink-400 text-white cursor-pointer';
+                loginBtn.className = 'py-2 rounded-xl font-arcade text-xs font-bold uppercase transition text-indigo-300 hover:text-white cursor-pointer';
+                submitBtn.textContent = 'CREATE ACCOUNT & PLAY 🐾';
+            }
+        }
+
+        document.getElementById('tabLoginBtn').addEventListener('click', () => setAuthMode('login'));
+        document.getElementById('tabRegisterBtn').addEventListener('click', () => setAuthMode('register'));
+
+        document.getElementById('authUsernameInput').addEventListener('input', (e) => {
+            const val = e.target.value.trim().toLowerCase();
+            document.getElementById('adminDetectBanner').classList.toggle('hidden', val !== 'aftabplays');
+        });
+
+        document.getElementById('authForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            audio.init();
+            const rawName = document.getElementById('authUsernameInput').value.trim();
+            const pass = document.getElementById('authPasswordInput').value;
+            const errEl = document.getElementById('authErrorMsg');
+
+            if (!rawName || rawName.length < 2) {
+                errEl.textContent = 'Please enter a username (at least 2 characters).';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            if (!pass || pass.length < 4) {
+                errEl.textContent = 'Please enter a PIN or password (at least 4 characters).';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const key = rawName.toLowerCase();
+            const existing = accountsDB[key];
+
+            if (authMode === 'login') {
+                if (!existing) {
+                    errEl.textContent = 'Account not found. Switch to "Create Account" to register!';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                if (existing.password !== pass) {
+                    errEl.textContent = 'Incorrect PIN / password for this account.';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                currentUser = normalizeAccountRecord(existing);
+            } else {
+                if (existing) {
+                    errEl.textContent = 'That username already exists. Try signing in instead!';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                currentUser = createDefaultAccountData(rawName, pass);
+                accountsDB[key] = currentUser;
+            }
+
+            errEl.classList.add('hidden');
+            persistSave();
+            authOverlay.classList.add('hidden');
+            openMainMenu();
+        });
+
+        // Admin Panel Logic (Strictly gated by isAdminUser())
+        function setAdminFeedback(msg) {
+            const el = document.getElementById('adminStatusFeedback');
+            if (!el) return;
+            el.textContent = msg;
+            clearTimeout(el._t);
+            el._t = setTimeout(() => { el.textContent = ''; }, 2400);
+        }
+
+        function syncAdminModalUI() {
+            if (!isAdminUser()) return;
+
+            const godBtn = document.getElementById('adminToggleGodBtn');
+            godBtn.textContent = adminCheats.godMode ? 'ON' : 'OFF';
+            godBtn.className = adminCheats.godMode
+                ? 'px-3 py-1.5 rounded-lg font-arcade text-xs font-bold bg-emerald-500/30 border border-emerald-400 text-emerald-200 cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg font-arcade text-xs font-bold bg-slate-800 border border-slate-600 text-slate-300 cursor-pointer';
+
+            const botBtn = document.getElementById('adminToggleBotBtn');
+            botBtn.textContent = adminCheats.autoBot ? 'ON' : 'OFF';
+            botBtn.className = adminCheats.autoBot
+                ? 'px-3 py-1.5 rounded-lg font-arcade text-xs font-bold bg-cyan-500/30 border border-cyan-400 text-cyan-200 cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg font-arcade text-xs font-bold bg-slate-800 border border-slate-600 text-slate-300 cursor-pointer';
+
+            const slider = document.getElementById('adminSpeedSlider');
+            slider.value = String(adminCheats.speedMult);
+            document.getElementById('adminSpeedValLabel').textContent = `${adminCheats.speedMult.toFixed(1)}x`;
+
+            document.getElementById('hudGodBadge').classList.toggle('hidden', !adminCheats.godMode);
+            document.getElementById('hudBotBadge').classList.toggle('hidden', !adminCheats.autoBot);
+
+            const keys = Object.keys(accountsDB);
+            document.getElementById('adminTotalAccountsCount').textContent = String(keys.length);
+            const listEl = document.getElementById('adminAccountsList');
+            listEl.innerHTML = '';
+
+            keys.forEach(k => {
+                const acc = normalizeAccountRecord(accountsDB[k]);
+                const isCreator = acc.username.trim().toLowerCase() === 'aftabplays';
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between gap-2 bg-slate-900/90 border border-white/10 rounded-xl px-3 py-2';
+                row.innerHTML = `
+                    <div class="min-w-0">
+                        <div class="text-xs font-bold text-white truncate">${isCreator ? '👑 ' : '🐱 '}${acc.username}</div>
+                        <div class="text-[10px] text-indigo-300">🐟 ${acc.fish} • Skins: ${acc.unlockedSkins.length}/6 • Best: ${acc.endlessBestDist}m</div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button data-grant="${k}" type="button" class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/50 text-amber-200 font-arcade text-[10px] font-bold hover:bg-amber-500/35 cursor-pointer">+500 🐟</button>
+                        ${!isCreator ? `<button data-del="${k}" type="button" class="px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-400/50 text-rose-200 font-arcade text-[10px] font-bold hover:bg-rose-500/35 cursor-pointer">DEL</button>` : ''}
+                    </div>
+                `;
+
+                const grantBtn = row.querySelector('[data-grant]');
+                if (grantBtn) {
+                    grantBtn.addEventListener('click', () => {
+                        const target = normalizeAccountRecord(accountsDB[k]);
+                        target.fish += 500;
+                        accountsDB[k] = target;
+                        if (currentUser && currentUser.username.toLowerCase() === k) {
+                            currentUser.fish = target.fish;
+                        }
+                        persistSave();
+                        updateMenuFishLabels();
+                        syncAdminModalUI();
+                        setAdminFeedback(`Granted +500 🐟 to ${target.username}`);
+                    });
+                }
+
+                const delBtn = row.querySelector('[data-del]');
+                if (delBtn) {
+                    delBtn.addEventListener('click', () => {
+                        const removedName = accountsDB[k].username;
+                        delete accountsDB[k];
+                        persistSave();
+                        syncAdminModalUI();
+                        setAdminFeedback(`Deleted ${removedName}`);
+                    });
+                }
+
+                listEl.appendChild(row);
+            });
+        }
+
+        function openAdminModal() {
+            if (!isAdminUser()) return;
+            syncAdminModalUI();
+            adminModalOverlay.classList.remove('hidden');
+        }
+
+        document.getElementById('adminBtnMenu').addEventListener('click', openAdminModal);
+        document.getElementById('adminBtnHud').addEventListener('click', openAdminModal);
+        document.getElementById('closeAdminModalBtn').addEventListener('click', () => {
+            adminModalOverlay.classList.add('hidden');
+        });
+
+        document.getElementById('adminToggleGodBtn').addEventListener('click', () => {
+            if (!isAdminUser()) return;
+            adminCheats.godMode = !adminCheats.godMode;
+            syncAdminModalUI();
+            setAdminFeedback(adminCheats.godMode ? 'God Mode ENABLED' : 'God Mode OFF');
+        });
+
+        document.getElementById('adminToggleBotBtn').addEventListener('click', () => {
+            if (!isAdminUser()) return;
+            adminCheats.autoBot = !adminCheats.autoBot;
+            syncAdminModalUI();
+            setAdminFeedback(adminCheats.autoBot ? 'Auto-Pilot Bot ENABLED' : 'Auto-Pilot Bot OFF');
+        });
+
+        document.getElementById('adminSpeedSlider').addEventListener('input', (e) => {
+            if (!isAdminUser()) return;
+            adminCheats.speedMult = parseFloat(e.target.value) || 1.0;
+            document.getElementById('adminSpeedValLabel').textContent = `${adminCheats.speedMult.toFixed(1)}x`;
+        });
+
+        document.getElementById('adminInstantWinBtn').addEventListener('click', () => {
+            if (!isAdminUser()) return;
+            if (LEVELS[selectedLevelIdx].endless) {
+                setAdminFeedback('Endless has no finish line—use God Mode!');
+                return;
+            }
+            adminModalOverlay.classList.add('hidden');
+            if (gameState !== 'PLAYING') {
+                resetRun(false, false);
+            }
+            triggerVictory();
+        });
+
+        document.getElementById('adminAdd1kFishBtn').addEventListener('click', () => {
+            if (!isAdminUser() || !currentUser) return;
+            currentUser.fish += 1000;
+            persistSave();
+            updateMenuFishLabels();
+            syncAdminModalUI();
+            setAdminFeedback('+1,000 🐟 Added!');
+        });
+
+        document.getElementById('adminAdd10kFishBtn').addEventListener('click', () => {
+            if (!isAdminUser() || !currentUser) return;
+            currentUser.fish += 10000;
+            persistSave();
+            updateMenuFishLabels();
+            syncAdminModalUI();
+            setAdminFeedback('+10,000 🐟 Added!');
+        });
+
+        document.getElementById('adminSetFishBtn').addEventListener('click', () => {
+            if (!isAdminUser() || !currentUser) return;
+            const val = parseInt(document.getElementById('adminExactFishInput').value, 10);
+            if (!isNaN(val) && val >= 0) {
+                currentUser.fish = val;
+                persistSave();
+                updateMenuFishLabels();
+                syncAdminModalUI();
+                setAdminFeedback(`Golden Fish set to ${val}`);
+            }
+        });
+
+        document.getElementById('adminUnlockAllSkinsBtn').addEventListener('click', () => {
+            if (!isAdminUser() || !currentUser) return;
+            currentUser.unlockedSkins = SKINS.map(s => s.id);
+            persistSave();
+            renderSkinCards();
+            syncAdminModalUI();
+            setAdminFeedback('All 6 Cat Skins Unlocked!');
+        });
+
+        document.getElementById('adminCompleteAllLevelsBtn').addEventListener('click', () => {
+            if (!isAdminUser() || !currentUser) return;
+            currentUser.levelBest = [100, 100, 100, 100];
+            persistSave();
+            renderLevelCards();
+            updateBestStatLabel();
+            syncAdminModalUI();
+            setAdminFeedback('All 4 Stages Set to 100%!');
+        });
+
+        document.getElementById('adminResetOwnProgressBtn').addEventListener('click', () => {
+            if (!isAdminUser() || !currentUser) return;
+            const pass = currentUser.password;
+            currentUser = createDefaultAccountData('AftabPlays', pass);
+            persistSave();
+            updateMenuFishLabels();
+            renderLevelCards();
+            renderSkinCards();
+            updateBestStatLabel();
+            syncAdminModalUI();
+            setAdminFeedback('AftabPlays Progress Reset');
+        });
+
+        // =========================================================================
+        // 9. BUTTONS, TOUCH/POINTER/KEYBOARD INPUTS & BOOT SEQUENCE
+        // =========================================================================
+        document.getElementById('selectMobileBtn').addEventListener('click', () => {
+            audio.init();
+            sessionState.deviceMode = 'mobile';
+            persistSave();
+            applyDeviceModeUI();
+            deviceOverlay.classList.add('hidden');
+            if (currentUser) {
+                openMainMenu();
+            } else {
+                openAuthScreen();
+            }
+        });
+
+        document.getElementById('selectDesktopBtn').addEventListener('click', () => {
+            audio.init();
+            sessionState.deviceMode = 'desktop';
+            persistSave();
+            applyDeviceModeUI();
+            deviceOverlay.classList.add('hidden');
+            if (currentUser) {
+                openMainMenu();
+            } else {
+                openAuthScreen();
+            }
+        });
+
+        document.getElementById('authBackDeviceBtn').addEventListener('click', () => {
+            authOverlay.classList.add('hidden');
+            deviceOverlay.classList.remove('hidden');
+        });
+
+        document.getElementById('switchDeviceBtn').addEventListener('click', () => {
+            sessionState.deviceMode = sessionState.deviceMode === 'mobile' ? 'desktop' : 'mobile';
+            persistSave();
+            applyDeviceModeUI();
+            showToast(sessionState.deviceMode === 'mobile' ? 'Switched to Mobile / Touch UI' : 'Switched to Laptop / PC UI');
+        });
+
+        document.getElementById('switchAccountBtn').addEventListener('click', openAuthScreen);
+
+        function toggleMute() {
+            audio.init();
+            audio.setMuted(!audio.muted);
+            if (currentUser) {
+                currentUser.muted = audio.muted;
+                persistSave();
+            }
+            updateMuteUI();
+        }
+
+        document.getElementById('muteBtnMenu').addEventListener('click', toggleMute);
+        document.getElementById('muteBtnHud').addEventListener('click', toggleMute);
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            audio.init();
+            isPracticeMode = false;
+            menuOverlay.classList.add('hidden');
+            resetRun(false, false);
+        });
+
+        document.getElementById('practiceBtn').addEventListener('click', () => {
+            audio.init();
+            isPracticeMode = true;
+            menuOverlay.classList.add('hidden');
+            resetRun(false, false);
+        });
+
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            audio.init();
+            endOverlay.classList.add('hidden');
+            resetRun(true, false);
+        });
+
+        document.getElementById('hudQuickRestartBtn').addEventListener('click', () => {
+            audio.init();
+            endOverlay.classList.add('hidden');
+            resetRun(true, false);
+        });
+
+        document.getElementById('menuReturnBtn').addEventListener('click', openMainMenu);
+        document.getElementById('pauseHomeBtn').addEventListener('click', openMainMenu);
+
+        // Hold-to-fly pointer & touch support on the canvas
+        canvas.addEventListener('pointerdown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            if (isAdminUser() && adminCheats.autoBot) return;
+            audio.init();
+            isHolding = true;
+        });
+
+        window.addEventListener('pointerup', () => {
+            isHolding = false;
+        });
+
+        window.addEventListener('pointercancel', () => {
+            isHolding = false;
+        });
+
+        // Keyboard controls
+        window.addEventListener('keydown', (e) => {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                e.preventDefault();
+                if (gameState === 'PLAYING') {
+                    if (!(isAdminUser() && adminCheats.autoBot)) {
+                        audio.init();
+                        isHolding = true;
+                    }
+                } else if (gameState === 'CRASHED' || gameState === 'VICTORY') {
+                    endOverlay.classList.add('hidden');
+                    resetRun(true, false);
+                }
+            } else if (e.code === 'KeyR') {
+                if (gameState === 'PLAYING' || gameState === 'CRASHED' || gameState === 'VICTORY') {
+                    e.preventDefault();
+                    endOverlay.classList.add('hidden');
+                    resetRun(true, false);
+                }
+            } else if (e.code === 'Escape') {
+                if (!adminModalOverlay.classList.contains('hidden')) {
+                    adminModalOverlay.classList.add('hidden');
+                } else if (gameState === 'PLAYING' || gameState === 'CRASHED' || gameState === 'VICTORY') {
+                    openMainMenu();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                isHolding = false;
+            }
+        });
+
+        // Initial Boot
+        prepareMenuBackgroundWorld();
+        if (sessionState.deviceMode) {
+            applyDeviceModeUI();
+            deviceOverlay.classList.add('hidden');
+            if (currentUser) {
+                openMainMenu();
+            } else {
+                openAuthScreen();
+            }
+        }
+        requestAnimationFrame(gameLoop);
+    })();
+    </script>
+</body>
+</html>
